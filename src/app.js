@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import cron from "node-cron"
 
 const app = express()
 
@@ -11,6 +12,12 @@ app.use(cors({
 
 app.use(express.json())
 app.use(cookieParser())
+
+// To keep website alive
+cron.schedule("*/10 * * * *", async () => {
+    console.log("Running every 10 minutes")
+})
+
 
 //routes import
 import studentRouter from './routes/student.routes.js'
