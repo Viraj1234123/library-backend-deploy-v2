@@ -14,8 +14,8 @@ app.use(express.json())
 app.use(cookieParser())
 
 // To keep website alive
-cron.schedule("*/1 * * * *", async () => {
-    console.log("Running every 1 minutes")
+cron.schedule("*/5 * * * *", async () => {
+    console.log("Running every 5 minutes");
 })
 
 //routes import
