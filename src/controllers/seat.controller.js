@@ -12,6 +12,13 @@ const getSeats = asyncHandler(async(req, res) => {
     )
 });
 
+const getAvailableSeats = asyncHandler(async(req, res) => {
+    const seats = await Seat.find({ isAvailable: true })
+    return res.status(200).json(
+        new ApiResponse(200, seats, "Available seats fetched successfully")
+    )
+});
+
 const getSeat = asyncHandler(async(req, res) => {
     const seat = await Seat.findById(req.params.id)
     if (!seat) {
@@ -22,10 +29,18 @@ const getSeat = asyncHandler(async(req, res) => {
     )
 });
 
-const addSeat = asyncHandler(async(req, res) => {
-    const { seatType, seatNumber, floor } = req.body
+const getSeatsByRoom = asyncHandler(async(req, res) => {
+    const room = req.params.room;
+    const seats = await Seat.find({room: room});
+    return res.status(200).json(
+        new ApiResponse(200, seats, "Seats fetched successfully")
+    )
+});
 
-    if(!seatType || !seatNumber || !floor){
+const addSeat = asyncHandler(async(req, res) => {
+    const { seatType, seatNumber, floor, room, x, y } = req.body
+
+    if(!seatType || !seatNumber || !floor || !room || !x || !y){
         throw new ApiError(400, "All fields are required")
     }
 
@@ -33,16 +48,26 @@ const addSeat = asyncHandler(async(req, res) => {
         throw new ApiError(400, "Seat number cannot be less than 1");
     }
 
-    const existingSeat = await Seat.findOne({ seatType: seatType, seatNumber: seatNumber, floor: floor });
+    if(x<0 || y<0){
+        throw new ApiError(400, "Keep coordinates above the origin (that is greater then 0)");
+    }
+
+    const existingSeat = await Seat.findOne({ seatType: seatType, seatNumber: seatNumber, floor: floor, room: room });
     
     if(existingSeat) {
         throw new ApiError(409, "This seat already exists");
     }
 
-    const seat = await Seat.create({ seatType, seatNumber, floor })
+    const existingCoordinates = await Seat.findOne({ floor, room, coordinates: { x: x, y: y } });
+
+    if(existingCoordinates) {
+        throw new ApiError(409, "This coordinates are already occupied by another seat");
+    }
+
+    const seat = await Seat.create({ seatType, seatNumber, floor, room, coordinates: { x, y } });
 
     if(!seat){
-        throw new ApiError(500, "Error while adding seat")
+        throw new ApiError(500, "Error while adding seat");
     }
 
     return res.status(201).json(
@@ -50,11 +75,55 @@ const addSeat = asyncHandler(async(req, res) => {
     )
 });
 
-const updateSeat = asyncHandler(async(req, res) => {
-    const { seatType, seatNumber, floor, isAvailable } = req.body
+const addSeats = asyncHandler(async(req, res) => {
+    const seats = req.body.seats;
+    let createdSeats = [];
+    for(let i=0; i<seats.length; i++){
+        const { seatType, seatNumber, floor, room, coordinates } = seats[i];
+        if(!seatType || !seatNumber || !floor || !room || !coordinates){
+            throw new ApiError(400, "All fields are required")
+        }
 
-    if(!seatType && !seatNumber && !floor && !isAvailable){
-        throw new ApiError(400, "Some field is required")
+        if(seatNumber < 1){
+            throw new ApiError(400, "Seat number cannot be less than 1");
+        }
+
+        if(coordinates.x<0 || coordinates.y<0){
+            throw new ApiError(400, "Keep coordinates above the origin (that is greater then 0)");
+        }
+
+        const existingSeat = await Seat.findOne({ seatType: seatType, seatNumber: seatNumber, floor: floor, room: room });
+
+        if(existingSeat) {
+            throw new ApiError(409, "This seat already exists");
+        }
+
+        const existingCoordinates = await Seat.findOne({ floor, room, coordinates });
+
+        if(existingCoordinates) {
+            throw new ApiError(409, "This coordinates are already occupied by another seat");
+        }
+
+        const seat = await Seat.create({ seatType, seatNumber, floor, room, coordinates });
+
+        if(!seat){
+            throw new ApiError(500, "Error while adding seat");
+        }
+
+        createdSeats.push(seat);
+
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, createdSeats, "Seats added successfully")
+    )
+});
+
+const updateSeat = asyncHandler(async(req, res) => {
+    const { seatType, seatNumber, floor, isAvailable, room, coordinates } = req.body
+
+    if(!seatType && !seatNumber && !floor && isAvailable == undefined && !room && !coordinates){
+        throw new ApiError(400, "Some field is required");
     }
 
     const seat = await Seat.findById(req.body.id);
@@ -68,11 +137,17 @@ const updateSeat = asyncHandler(async(req, res) => {
     if(floor){
         seat.floor = floor
     }
-    if(isAvailable){
+    if(isAvailable != undefined){
         seat.isAvailable = isAvailable
     }
+    if(room){
+        seat.room = room
+    }
+    if(coordinates){
+        seat.coordinates = coordinates
+    }
 
-    await seat.save()
+    await seat.save();
 
     if(!seat){
         throw new ApiError(500, "Error while updating seat")
@@ -122,4 +197,30 @@ const deleteSeat = asyncHandler(async(req, res) => {
     }
 });
 
-export { getSeats, getSeat, addSeat, updateSeat, deleteSeat }
+const changeSeatAvailabilityForRoom = asyncHandler(async(req, res) => {
+
+    const room = req.body.room;
+    const isAvailable = req.body.isAvailable;
+
+    if(isAvailable === undefined){
+        throw new ApiError(400, "isAvailable field is required");
+    }
+
+    const seats = await Seat.find({ room: room });
+
+    if(seats.length === 0){
+        throw new ApiError(404, "No seats found for this room");
+    }
+
+    for(let i=0; i<seats.length; i++){
+        seats[i].isAvailable = isAvailable;
+        await seats[i].save();
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Seats availability changed successfully")
+    )
+
+});
+
+export { getSeats, getSeat, addSeat, updateSeat, deleteSeat, getSeatsByRoom, addSeats, getAvailableSeats, changeSeatAvailabilityForRoom };

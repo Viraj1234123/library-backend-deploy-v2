@@ -13,7 +13,8 @@ import {
     getPendingStudentRegistrations,
     getIssuedBooksByStudent,
     getIssuedBooksByBook,
-    removeStudent
+    removeStudent,
+    getStudentByRollNumber
 } from "../controllers/admin.controller.js";
 import { verifyJWTAdmin } from "../middlewares/auth.middleware.js";
 
@@ -33,5 +34,6 @@ router.route("/pending-student-registration-requests").get(verifyJWTAdmin, getPe
 router.route("/get-issued-books-by-student/:rollNo").get(verifyJWTAdmin, getIssuedBooksByStudent)
 router.route("/get-issued-books-by-book/:bookId").get(verifyJWTAdmin, getIssuedBooksByBook)
 router.route("/remove-student/:rollNo").delete(verifyJWTAdmin, removeStudent)
+router.route("/get-student-by-rollNo/:rollNo").get(verifyJWTAdmin, getStudentByRollNumber)
 
 export default router

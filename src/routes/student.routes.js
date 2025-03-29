@@ -10,7 +10,8 @@ import {
     resetPasswordRequest,
     resetPassword,
     getIssuedBooks,
-    getCurrentStudentComplaints
+    getCurrentStudentComplaints,
+    updateProfile
 } from "../controllers/student.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -27,5 +28,6 @@ router.route("/reset-password").patch(resetPassword)
 router.route("/reset-password-request").post(resetPasswordRequest)
 router.route("/get-issued-books").get(verifyJWT, getIssuedBooks)
 router.route("/get-my-complaints").get(verifyJWT, getCurrentStudentComplaints)
+router.route("/update-profile").patch(verifyJWT, updateProfile);
 
 export default router

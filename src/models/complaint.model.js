@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 const complaintSchema = new mongoose.Schema(
     {
@@ -13,7 +13,7 @@ const complaintSchema = new mongoose.Schema(
             required: true,
             trim: true,
             index: true,
-            enum: ['Noise', 'Book Availability', 'Facilities', 'Staff Behavior', 'Seat Bookings', 'Other']
+            enum: ['Complaint','Feedback']
         },
         title: {
             type: String,

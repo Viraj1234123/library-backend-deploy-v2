@@ -330,6 +330,54 @@ const getCurrentStudentComplaints = asyncHandler(async(req, res) => {
 
 });
 
+const updateProfile = asyncHandler(async(req,res) => {
+
+    const student = req.student;
+    const { dateOfBirth, degree, department, gender, phoneNumber, password } = req.body;
+
+    if(!student){
+        throw new ApiError(404, "Student not found");
+    }
+
+    if(student.isAdminApproved){
+        throw new ApiError(400, "Cannot change profile once submitted.");
+    }
+
+    if(dateOfBirth){
+        student.dateOfBirth = dateOfBirth;
+    }
+    if(degree){
+        student.degree = degree;
+    }
+    if(department){
+        student.department = department;
+    }
+    if(gender){
+        student.gender = gender;
+    }
+    if(phoneNumber){
+        student.phoneNumber = phoneNumber;
+    }
+    if(password){
+        student.password = password;
+    }
+
+    if(dateOfBirth && degree && department && gender && phoneNumber && password){
+        student.isAdminApproved = true;
+    }
+
+    await student.save();
+
+    return res
+    .status(200)
+    .json(new ApiResponse(
+        200,
+        req.student,
+        "Student profile updated successfully"
+    ));
+
+});
+
 
 export {
     registerStudent,
@@ -342,5 +390,6 @@ export {
     resetPasswordRequest,
     resetPassword,
     getIssuedBooks,
-    getCurrentStudentComplaints
+    getCurrentStudentComplaints,
+    updateProfile
 }

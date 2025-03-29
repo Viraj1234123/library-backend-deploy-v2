@@ -652,7 +652,7 @@ const bookDueDateReminderMailHTML = (name, title, author, dueDate) => `
 
 `
 
-const seatBookedMailHTML = (name, startTime, endTime, seatNumber, seatType, floor) => `
+const seatBookedMailHTML = (name, startTime, endTime, seatNumber, seatType, floor, room) => `
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -669,6 +669,7 @@ const seatBookedMailHTML = (name, startTime, endTime, seatNumber, seatType, floo
                 <th style="white-space: nowrap;">Seat Type</th>
                 <th style="white-space: nowrap;">Seat Number</th>
                 <th>Floor</th>
+                <th>Room</th>
                 <th>From</th>
                 <th>To</th>
             </tr>
@@ -676,6 +677,7 @@ const seatBookedMailHTML = (name, startTime, endTime, seatNumber, seatType, floo
                 <td style="text-align: center;">${seatType}</td>
                 <td style="text-align: center;">${seatNumber}</td>
                 <td style="text-align: center;">${floor}</td>
+                <td style="text-align: center;">${room}</td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
             </tr>
@@ -687,7 +689,7 @@ const seatBookedMailHTML = (name, startTime, endTime, seatNumber, seatType, floo
     </html>
 `
 
-const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor) => `
+const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor, room) => `
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -704,6 +706,7 @@ const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
                 <th style="white-space: nowrap;">Seat Type</th>
                 <th style="white-space: nowrap;">Seat Number</th>
                 <th>Floor</th>
+                <th>Room</th>
                 <th>From</th>
                 <th>To</th>
             </tr>
@@ -711,6 +714,7 @@ const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
                 <td style="text-align: center;">${seatType}</td>
                 <td style="text-align: center;">${seatNumber}</td>
                 <td style="text-align: center;">${floor}</td>
+                <td style="text-align: center;">${room}</td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
             </tr>
@@ -722,7 +726,7 @@ const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
     </html>
 `
 
-const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor) => `
+const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor, room) => `
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -739,6 +743,7 @@ const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
                 <th style="white-space: nowrap;">Seat Type</th>
                 <th style="white-space: nowrap;">Seat Number</th>
                 <th>Floor</th>
+                <th>Room</th>
                 <th>From</th>
                 <th>To</th>
             </tr>
@@ -746,6 +751,7 @@ const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
                 <td style="text-align: center;">${seatType}</td>
                 <td style="text-align: center;">${seatNumber}</td>
                 <td style="text-align: center;">${floor}</td>
+                <td style="text-align: center;">${room}</td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
             </tr>
@@ -756,6 +762,78 @@ const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
     </body>
     </html>
 `
+
+const upcomingSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor, room) => `
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Library Book Checkout Notification</title>
+    </head>
+    <body>
+        <p>Dear ${name},</p>
+
+        <p>Gentle reminder to occupy the seat booked by you in the library.</p>
+
+        <table border="1" cellpadding="10">
+            <tr>
+                <th style="white-space: nowrap;">Seat Type</th>
+                <th style="white-space: nowrap;">Seat Number</th>
+                <th>Floor</th>
+                <th>Room</th>
+                <th>From</th>
+                <th>To</th>
+            </tr>
+            <tr>
+                <td style="text-align: center;">${seatType}</td>
+                <td style="text-align: center;">${seatNumber}</td>
+                <td style="text-align: center;">${floor}</td>
+                <td style="text-align: center;">${room}</td>
+                <td>${startTime}</td>
+                <td>${endTime}</td>
+            </tr>
+        </table>
+
+        <p>Thank you</p>
+        <p>Library, IIT Ropar</p>
+    </body>
+    </html>`
+
+const endingSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatType, floor, room) => `
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Library Book Checkout Notification</title>
+    </head>
+    <body>
+        <p>Dear ${name},</p>
+
+        <p>Gentle reminder to leave the following seat booked by you in the library.</p>
+
+        <table border="1" cellpadding="10">
+            <tr>
+                <th style="white-space: nowrap;">Seat Type</th>
+                <th style="white-space: nowrap;">Seat Number</th>
+                <th>Floor</th>
+                <th>Room</th>
+                <th>From</th>
+                <th>To</th>
+            </tr>
+            <tr>
+                <td style="text-align: center;">${seatType}</td>
+                <td style="text-align: center;">${seatNumber}</td>
+                <td style="text-align: center;">${floor}</td>
+                <td style="text-align: center;">${room}</td>
+                <td>${startTime}</td>
+                <td>${endTime}</td>
+            </tr>
+        </table>
+
+        <p>Thank you</p>
+        <p>Library, IIT Ropar</p>
+    </body>
+    </html>`
 
 const bookOverdueFineMailHTML = (name, title, author, dueDate, fineAmount) => `
     <html lang="en">
@@ -842,6 +920,8 @@ export {
     seatBookedMailHTML,
     cancelSeatBookingMailHTML,
     rejectSeatBookingMailHTML,
+    upcomingSeatBookingMailHTML,
+    endingSeatBookingMailHTML,
     bookOverdueFineMailHTML,
     cancelNotIssuedBookBookingMailHTML
 }

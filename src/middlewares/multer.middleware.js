@@ -10,6 +10,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage }).single('coverImageFile');
+const uploadFile = multer({ storage: storage }).single('file');
 const uploadMultiple = multer({ storage: storage }).array('files',100);
 
-export { upload, uploadMultiple };
+export { upload, uploadMultiple, uploadFile };

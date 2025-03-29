@@ -460,6 +460,21 @@ const removeStudent = asyncHandler(async(req, res) => {
 
 });
 
+const getStudentByRollNumber = asyncHandler(async(req, res) => {
+
+    const student = await Student.findOne({rollNo: req.params.rollNo});
+    if(!student){
+        throw new ApiError(404, "Student not found");
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            student,
+            "Student details fetched successfully"
+        ));
+});
+
 
 export {
     //registerAdmin,
@@ -475,5 +490,6 @@ export {
     getPendingStudentRegistrations,
     getIssuedBooksByStudent,
     getIssuedBooksByBook,
-    removeStudent
+    removeStudent,
+    getStudentByRollNumber
 }

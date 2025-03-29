@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudent, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime } from '../controllers/seatBooking.controller.js';
+import { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudent, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom } from '../controllers/seatBooking.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { verifyJWTAdmin } from '../middlewares/auth.middleware.js';
 
@@ -16,5 +16,9 @@ router.route("/get-by-seat-id-for-today/:seatId").get(verifyJWT, getBookingsBySe
 router.route("/reject-booking").delete(verifyJWTAdmin, rejectBooking);
 router.route("/book-seat-by-admin").post(verifyJWTAdmin, bookSeatByAdmin);
 router.route("/get-available-seats-by-slot").get(verifyJWT, getAvailableSeatsByStartTime);
+router.route("/pause-bookings-for-room").post(verifyJWTAdmin, pauseBookingsForRoom);
+router.route("/get-all-pause-bookings").get(verifyJWT, getAllPauseBookings);
+router.route("/get-upcoming-pause-bookings").get(verifyJWT, getUpcomingPauseBookings);
+router.route("/get-pause-slots-by-room/").get(verifyJWT, getPauseSlotsByRoom);
 
 export default router;

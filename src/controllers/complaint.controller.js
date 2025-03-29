@@ -5,20 +5,34 @@ import { Complaint } from "../models/complaint.model.js";
 import { Student } from "../models/student.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-const getComplaints = asyncHandler(async(req, res) => {
+const getComplaintsAndFeedbacks = asyncHandler(async(req, res) => {
     const complaints = await Complaint.find().populate('studentId','name rollNo');
+    return res.status(200).json(
+        new ApiResponse(200, complaints, "Complaints and Feedbacks fetched successfully")
+    )
+});
+
+const getComplaintOrFeedback = asyncHandler(async(req, res) => {
+    const complaint = await Complaint.findById(req.params.id).populate('studentId', 'name rollNo');
+    if (!complaint) {
+        throw new ApiError(404, "Complaint or Feedback not found")
+    }
+    return res.status(200).json(
+        new ApiResponse(200, complaint, "Complaint or Feedback fetched successfully")
+    )
+});
+
+const getComplaints = asyncHandler(async(req, res) => {
+    const complaints = await Complaint.find({category: 'Complaint'}).populate('studentId','name rollNo');
     return res.status(200).json(
         new ApiResponse(200, complaints, "Complaints fetched successfully")
     )
 });
 
-const getComplaint = asyncHandler(async(req, res) => {
-    const complaint = await Complaint.findById(req.params.id).populate('studentId', 'name rollNo');
-    if (!complaint) {
-        throw new ApiError(404, "Complaint not found")
-    }
+const getFeedbacks = asyncHandler(async(req, res) => {
+    const complaints = await Complaint.find({category: 'Feedback'}).populate('studentId','name rollNo');
     return res.status(200).json(
-        new ApiResponse(200, complaint, "Complaint fetched successfully")
+        new ApiResponse(200, complaints, "Feedbacks fetched successfully")
     )
 });
 
@@ -44,11 +58,11 @@ const addComplaint = asyncHandler(async(req, res) => {
     const complaint = await Complaint.create({ category, title, description, studentId: student._id, attachments });
 
     if (!complaint) {
-        throw new ApiError(500, "Error while adding complaint")
+        throw new ApiError(500, "Error while adding complaint/Feedback")
     }
 
     return res.status(201).json(
-        new ApiResponse(201, complaint, "Complaint added successfully")
+        new ApiResponse(201, complaint, "Complaint/Feedback added successfully")
     )
 });
 
@@ -67,7 +81,7 @@ const updateComplaint = asyncHandler(async(req, res) => {
     const complaint = await Complaint.findById(req.params.id);
 
     if (!complaint) {
-        throw new ApiError(404, "Complaint not found")
+        throw new ApiError(404, "Complaint/Feedback not found")
     }
 
     if (status) {
@@ -84,14 +98,14 @@ const updateComplaint = asyncHandler(async(req, res) => {
     await complaint.save();
 
     return res.status(200).json(
-        new ApiResponse(200, complaint, "Complaint updated successfully")
+        new ApiResponse(200, complaint, "Complaint/Feedback updated successfully")
     )
 });
 
 const deleteComplaint = asyncHandler(async(req, res) => {
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) {
-        throw new ApiError(404, "Complaint not found")
+        throw new ApiError(404, "Complaint/Feedback not found")
     }
 
     await complaint.deleteOne();
@@ -103,7 +117,9 @@ const deleteComplaint = asyncHandler(async(req, res) => {
 
 export {
     getComplaints,
-    getComplaint,
+    getComplaintsAndFeedbacks,
+    getComplaintOrFeedback,
+    getFeedbacks,
     addComplaint,
     updateComplaint,
     deleteComplaint

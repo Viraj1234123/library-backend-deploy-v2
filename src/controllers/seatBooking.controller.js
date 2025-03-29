@@ -5,8 +5,9 @@ import { ApiError } from '../utils/ApiError.js';
 import mongoose from 'mongoose';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Student } from '../models/student.model.js';
+import { PauseBooking } from '../models/pauseBooking.model.js';
 import transporter from '../utils/email.js';
-import { seatBookedMailHTML, cancelSeatBookingMailHTML, rejectSeatBookingMailHTML } from '../utils/mails.js';
+import { seatBookedMailHTML, cancelSeatBookingMailHTML, rejectSeatBookingMailHTML, upcomingSeatBookingMailHTML, endingSeatBookingMailHTML } from '../utils/mails.js';
 import cron from 'node-cron';
 
 const maxBookedSeatHoursPerDay = 5;
@@ -54,6 +55,18 @@ const bookSeat = asyncHandler(async (req, res) => {
         throw new ApiError(404, 'Seat not found');
     }
 
+    if(seat.isAvailable == false){
+        throw new ApiError(400, 'Seat is not available');
+    }
+
+    const pauseBooking = await PauseBooking.findOne({ room: seat.room, pauseStartTime: { $lte: endTime }, pauseEndTime: { $gte: startTime } });
+    if(pauseBooking){
+        throw new ApiError(400, 'Bookings are paused for this time for this room');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     const existingBooking = await SeatBooking.findOne({ seatId, startTime });
     if (existingBooking) {
         throw new ApiError(400, 'Seat already booked');
@@ -64,16 +77,13 @@ const bookSeat = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Student already has a seat booked for this time');
     }
 
-    if (student.bookedSeatHours >= 5 && startTime.getDate() == new Date().getDate()) {
-        throw new ApiError(400, 'Student has already booked seats for 5 hours for today');
+    if (student.bookedSeatHours >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
+        throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
 
-    if (student.bookedSeatHoursForTomorrow >= 5 && startTime.getDate() != new Date().getDate()) {
-        throw new ApiError(400, 'Student has already booked seats for 5 hours for tomorrow');
+    if (student.bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
+        throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for tomorrow`);
     }
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
 
     try {
         const newBooking = await SeatBooking.create(
@@ -106,7 +116,7 @@ const bookSeat = asyncHandler(async (req, res) => {
             from: process.env.EMAIL_USER,
             to: student.email,
             subject: 'Seat booked successfully in the library',
-            html: seatBookedMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor),
+            html: seatBookedMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
         };
 
         try{
@@ -128,24 +138,21 @@ const bookSeat = asyncHandler(async (req, res) => {
 });
 
 const bookSeatByAdmin = asyncHandler(async (req, res) => {
-    const { seatNumber, seatType, floor, rollNo } = req.body;
+    const { seatId, studentId } = req.body;
     let startHour = req.body.startTime;
-    const student = await Student.findOne({ rollNo });
 
     const now = new Date();
     let startTime = startHour;
 
-    const seat = await Seat.findOne({ seatNumber, seatType, floor });
+    const seat = await Seat.findOne({ _id: seatId });
     if (!seat) {
         throw new ApiError(404, 'Seat not found');
     }
 
+    const student = await Student.findOne({ _id: studentId });
     if (!student) {
         throw new ApiError(404, 'Student not found');
     }
-
-    const studentId = student._id;
-    const seatId = seat._id;
 
     if ([seatId, startTime, studentId].some((field) => field == undefined)) {
         throw new ApiError(400, 'All fields are required');
@@ -172,6 +179,18 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Bookings cannot be made between 11:55 PM to 12:00 AM');
     }
 
+    if(seat.isAvailable == false){
+        throw new ApiError(400, 'Seat is not available');
+    }
+
+    const pauseBooking = await PauseBooking.findOne({ room: seat.room, pauseStartTime: { $lte: endTime }, pauseEndTime: { $gte: startTime } });
+    if(pauseBooking){
+        throw new ApiError(400, 'Bookings are paused for this time for this room');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     const existingBooking = await SeatBooking.findOne({ seatId, startTime });
     if (existingBooking) {
         throw new ApiError(400, 'Seat already booked');
@@ -182,16 +201,13 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Student already has a seat booked for this time');
     }
 
-    if (student.bookedSeatHours >= 5 && startTime.getDate() == new Date().getDate()) {
-        throw new ApiError(400, 'Student has already booked seats for 5 hours for today');
+    if (student.bookedSeatHours >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
+        throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
 
-    if (student.bookedSeatHoursForTomorrow >= 5 && startTime.getDate() != new Date().getDate()) {
-        throw new ApiError(400, 'Student has already booked seats for 5 hours for tomorrow');
+    if (student.bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
+        throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
 
     try {
         const newBooking = await SeatBooking.create(
@@ -205,6 +221,7 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
             ],
             { session }
         );
+        
 
         if(startTime.getDate() != new Date().getDate()){
             student.bookedSeatHoursForTomorrow += 1;
@@ -224,7 +241,7 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
             from: process.env.EMAIL_USER,
             to: student.email,
             subject: 'Seat booked successfully in the library',
-            html: seatBookedMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor),
+            html: seatBookedMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
         };
 
         try{
@@ -271,6 +288,10 @@ const cancelBooking = asyncHandler(async (req, res) => {
     const startTime = booking.startTime;
     const endTime = booking.endTime;
 
+    if(new Date().getHours() == 23 && new Date().getMinutes() > 55){
+        throw new ApiError(400, 'Bookings cannot be cancelled between 11:55 PM to 12:00 AM');
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -288,7 +309,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
             from: process.env.EMAIL_USER,
             to: student.email,
             subject: 'Seat booking cancelled in the library',
-            html: cancelSeatBookingMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor),
+            html: cancelSeatBookingMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
         };
 
         try{
@@ -379,7 +400,10 @@ const getBookingsBySeatIdForToday = asyncHandler(async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const bookings = await SeatBooking.find({ seatId, startTime: { $gte: today } });
+    const tomorrow = new Date(today);
+    tomorrow.setHours(23,59,59,0);
+
+    const bookings = await SeatBooking.find({ seatId, endTime: { $gt: today } });
 
     return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
 });
@@ -415,7 +439,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
             from: process.env.EMAIL_USER,
             to: student.email,
             subject: 'Seat booking rejected by the library',
-            html: rejectSeatBookingMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor),
+            html: rejectSeatBookingMailHTML(student.name, startTime, endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
         };
 
         try{
@@ -438,30 +462,36 @@ const rejectBooking = asyncHandler(async (req, res) => {
 });
 
 const getAvailableSeatsByStartTime = asyncHandler(async (req, res) => {
-    const { seatType, floor } = req.query;
+    const { seatType, floor, room } = req.query;
     let startTime = req.query.startTime;
-    startTime = new Date().setHours(startTime,0,0,0);
-    startTime = new Date(startTime);
-
-    if ([startTime, seatType, floor].some((field) => field == undefined || field == '' || field == 0)) {
-        throw new ApiError(400, 'All fields are required');
-    }
-
     if(startTime < 0 || startTime > 23){
         throw new ApiError(400, 'Invalid start time');
     }
+    startTime = new Date().setHours(startTime,0,0,0);
+    startTime = new Date(startTime);
 
-    const endTime = new Date(startTime);
+    if ([startTime, seatType, floor, room].some((field) => field == undefined || field == '' || field == 0)) {
+        throw new ApiError(400, 'All fields are required');
+    }
+
+    let endTime = new Date(startTime);
     endTime.setHours(endTime.getHours() + 1);
 
     if(endTime < new Date()){
-        startTime = new Date().setDate(new Date().getDate() + 1);
+        startTime = startTime.setDate(startTime.getDate() + 1);
         startTime = new Date(startTime);
+        endTime = new Date(startTime);
+        endTime.setHours(endTime.getHours() + 1);
     }
 
     const bookings = await SeatBooking.find({ startTime });
 
-    const seats = await Seat.find({ seatType, floor });
+    const seats = await Seat.find({ seatType, floor, room });
+
+    const pausedSeats = await PauseBooking.find({ room, pauseStartTime: { $lt: endTime }, pauseEndTime: { $gt: startTime } });
+    if(pausedSeats.length > 0){
+        return res.status(200).json(new ApiResponse(200, [], 'Available seats fetched successfully'));
+    }
 
     const bookedSeatIds = new Set(bookings.map((booking) => booking.seatId.toString()));
 
@@ -471,16 +501,217 @@ const getAvailableSeatsByStartTime = asyncHandler(async (req, res) => {
 
 });
 
+const pauseBookingsForRoom = asyncHandler(async (req, res) => {
+    const { room, reason } = req.body;
+    const startTime = new Date(req.body.startTime);
+    const endTime = new Date(req.body.endTime);
+
+    if(!room || !reason || !startTime || !endTime){
+        throw new ApiError(400, 'All fields are required');
+    }
+
+    const bookings = await SeatBooking.find({ startTime: { $gte: startTime, $lt: endTime } });
+
+    for(let i=0; i<bookings.length; i++){
+
+        const booking = bookings[i];
+        if(booking.endTime < new Date()){
+            continue;
+        }
+        const seat = await Seat.findById(booking.seatId);
+        if(!seat){
+            throw new ApiError(404, 'Seat not found');
+        }
+        if(seat.room != room){
+            continue;
+        }
+        const student = await Student.findById(booking.studentId);
+        if(!student){
+            throw new ApiError(404, 'Student not found');
+        }
+
+        if(booking.startTime.getDate() == new Date().getDate()){
+            student.bookedSeatHours -= 1;
+            await student.save();
+        }
+
+        if(booking.startTime.getDate() == new Date().setDate(new Date().getDate()+1)){
+            student.bookedSeatHoursForTomorrow -= 1;
+            await student.save();
+        }
+
+        await SeatBooking.deleteOne({ _id: booking._id });
+
+    }
+
+    const existingPausedBooking = await PauseBooking.findOne({ room, pauseStartTime: { $lte: startTime }, pauseEndTime: { $gte: endTime } });
+    if(existingPausedBooking){
+        throw new ApiError(400, 'Bookings already paused for this time for this room');
+    }
+
+    const pausedBooking = await PauseBooking.create({
+        room: room,
+        pauseReason: reason,
+        pauseStartTime: startTime,
+        pauseEndTime: endTime,
+    });
+
+    if(!pausedBooking){
+        throw new ApiError(500, 'Error pausing bookings');
+    }
+    
+    res.status(200).json(new ApiResponse(200, {}, 'Bookings paused successfully'));
+
+    const students = await Student.find({isAdminApproved: true});
+
+    for(let i=0; i<students.length; i++){
+        const student = students[i];
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: student.email,
+            subject: 'Seat bookings paused in the library',
+            html: `Seat bookings for room <b>${room}</b> have been paused from <b>${startTime}</b> to <b>${endTime}</b> due to <b>${reason}</b>.
+            <br> All the bookings for this time has been cancelled. We apologize for the inconvenience.
+            <br> Regards
+            <br> Library, IIT Ropar
+            `,
+        };
+
+        try{
+            await transporter.sendMail(mailOptions)
+        }
+        catch(error){
+            console.log('Error sending mail');
+        }
+    }
+});
+
+const getUpcomingPauseBookings = asyncHandler(async (req, res) => {
+    const now = new Date();
+    const upcomingPauseBookings = await PauseBooking.find({ pauseEndTime: { $gte: now } }).sort({ pauseStartTime: 1 });
+
+    return res.status(200).json(new ApiResponse(200, upcomingPauseBookings, 'Upcoming pause bookings fetched successfully'));
+});
+
+const getPauseSlotsByRoom = asyncHandler(async (req, res) => {
+    const { room } = req.query;
+    const now = new Date();
+    
+    const pauseBookings = await PauseBooking.find({ 
+        room, 
+        pauseEndTime: { $gte: now } 
+    }).sort({ pauseStartTime: 1 });
+    
+    const currentHour = new Date(now);
+    currentHour.setMinutes(0, 0, 0);
+    
+    const hourlySlots = [];
+    
+    for (let i = 0; i < 25; i++) {
+        const startTime = new Date(currentHour);
+        startTime.setHours(currentHour.getHours() + i);
+        
+        const endTime = new Date(startTime);
+        endTime.setHours(startTime.getHours() + 1);
+        
+        const isUnavailable = pauseBookings.some(booking => {
+            return startTime < booking.pauseEndTime && endTime > booking.pauseStartTime;
+        });
+
+        if (isUnavailable) {
+            hourlySlots.push(
+                startTime.getHours()
+            );
+        }
+    }
+    
+    return res.status(200).json(
+        new ApiResponse(200, hourlySlots, 'Unavailable hourly slots fetched successfully')
+    );
+});
+
+const getAllPauseBookings = asyncHandler(async (req, res) => {
+    const pauseBookings = await PauseBooking.find().sort({ pauseStartTime: 1 });
+
+    return res.status(200).json(new ApiResponse(200, pauseBookings, 'All pause bookings fetched successfully'));
+});
 
 try{
-    cron.schedule('56 23 * * *', () => {
-        Student.updateMany({}, { bookedSeatHours: bookedSeatHoursForTomorrow, bookedSeatHoursForTomorrow: 0 }).then(() => {
-            console.log('Reset booked seat hours');
-        });
+    cron.schedule('56 23 * * *', async() => {
+        await Student.updateMany({isAdminApproved: true}, { bookedSeatHours: Student.bookedSeatHoursForTomorrow, bookedSeatHoursForTomorrow: 0 });
+        console.log('Reset booked seat hours');
     });
 }
 catch(err){
     console.log('Error resetting booked seat hours');
 }
 
-export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime };
+try{
+    cron.schedule('50 * * * *', async () => {
+
+        let now = new Date();
+        now.setMinutes(0, 0, 0);
+        now = new Date(now);
+        now.setHours(now.getHours() + 1);
+        now = new Date(now);
+
+        let bookings = await SeatBooking.find({startTime: now});
+        for(let booking of bookings){
+            const student = await Student.findOne({_id: booking.studentId});
+            if(!student){
+                throw new ApiError(404,'Student Not Found');
+            }
+            const seat = await Seat.findOne({_id: booking.seatId});
+            if(!seat){
+                throw new ApiError(404,'Seat Not Found');
+            }
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: student.email,
+                subject: 'Reminder for upcoming seat booking',
+                html: upcomingSeatBookingMailHTML(student.name, booking.startTime, booking.endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
+            };
+    
+            try{
+                await transporter.sendMail(mailOptions)
+            }
+            catch(error){
+                throw new ApiError(500, error.message || 'Error sending mail');
+            }
+        }
+
+        console.log('Sent upcoming seat booking reminder mails');
+
+        bookings = await SeatBooking.find({endTime: now});
+        for(let booking of bookings){
+            const student = await Student.findOne({_id: booking.studentId});
+            if(!student){
+                throw new ApiError(404,'Student Not Found');
+            }
+            const seat = await Seat.findOne({_id: booking.seatId});
+            if(!seat){
+                throw new ApiError(404,'Seat Not Found');
+            }
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: student.email,
+                subject: 'Reminder for ending seat booking',
+                html: endingSeatBookingMailHTML(student.name, booking.startTime, booking.endTime, seat.seatNumber, seat.seatType, seat.floor, seat.room),
+            };
+    
+            try{
+                await transporter.sendMail(mailOptions)
+            }
+            catch(error){
+                throw new ApiError(500, error.message || 'Error sending mail');
+            }
+        }
+
+        console.log('Sent ending seat booking reminder mails');
+    });
+}
+catch(err){
+    console.log('Error sending reminder seat booking mails.');
+}
+
+export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom };

@@ -74,6 +74,11 @@ const studentSchema = new Schema(
             default: 0,
             required: true
         },
+        fine: {
+            type: Number,
+            default: 0,
+            required: true
+        },
         refreshToken: {
             type: String
         }
