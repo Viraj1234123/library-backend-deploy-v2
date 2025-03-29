@@ -8,7 +8,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import http from 'http';
 import https from 'https';
-import poppler from 'pdf-poppler';
+import pkg from 'node-poppler';
+const Poppler = pkg.default || pkg.Poppler;
+const poppler = new Poppler();
 
 const __dirname = path.dirname('public');
 
@@ -249,91 +251,138 @@ let finalPdfPath;
 
 async function renderPdfPageToImage(pdfPath, pageNumber = 1, options = {}) {
     let isTempFile = false;
+    let finalPdfPath = pdfPath;
     let outputPath = null;
+    
     try {
-      if (!pdfPath) throw new Error('No PDF path provided');
-      if (typeof pageNumber !== 'number' || pageNumber < 1) {
-        throw new Error('Invalid page number');
-      }
-  
-       finalPdfPath = pdfPath;
-
-      if (pdfPath.startsWith('http')) {
-        const response = await axios.get(pdfPath, { 
-          responseType: 'arraybuffer',
-          validateStatus: status => status >= 200 && status < 300
+        if (!pdfPath) throw new Error('No PDF path provided');
+        if (typeof pageNumber !== 'number' || pageNumber < 1) {
+            throw new Error('Invalid page number');
+        }
+        
+        // Download the PDF if it's a URL
+        if (pdfPath.startsWith('http')) {
+            const response = await axios.get(pdfPath, { 
+                responseType: 'arraybuffer',
+                validateStatus: status => status >= 200 && status < 300
+            });
+            finalPdfPath = path.join(__dirname, `temp-${Date.now()}.pdf`);
+            await fs.writeFile(finalPdfPath, response.data);
+            isTempFile = true;
+        }
+        
+        // Create output file path
+        const outputPrefix = path.join(__dirname, `temp-render-${Date.now()}`);
+        
+        // Create Poppler instance and convert to image
+        const poppler = new Poppler();
+        
+        // Use correct options for pdfToCairo based on the accepted options list
+        await poppler.pdfToCairo(finalPdfPath, outputPrefix, {
+            pngFile: true, 
+            firstPageToConvert: pageNumber,
+            lastPageToConvert: pageNumber,
+            // For resolution/quality, use one of these options:
+            resolutionXYAxis: options.dpi || 1000, // Use resolutionXYAxis instead of scale
+            singleFile: true // Important to get a single output file
         });
-        finalPdfPath = path.join(__dirname, `temp-${Date.now()}.pdf`);
-        await fs.writeFile(finalPdfPath, response.data);
-        isTempFile = true;
-      }
-      if (!(await fs.stat(finalPdfPath)).isFile()) {
-        throw new Error(`PDF file not found: ${finalPdfPath}`);
-      }
-      const outputPrefix = path.join(__dirname, 'temp-render');
-      const opts = {
-        format: 'png',
-        out_dir: path.dirname(outputPrefix),
-        out_prefix: path.basename(outputPrefix),
-        page: pageNumber,
-        scale: options.dpi || 2000,
-        singleFile: true
-      };
-  
-      await poppler.convert(finalPdfPath, opts);
-
-      if (isTempFile) await fs.unlink(finalPdfPath);
-
-      outputPath = `${outputPrefix}-${pageNumber}.png`;
-      const imageBuffer = await fs.readFile(outputPath);
-      await fs.unlink(outputPath);
-  
-      return imageBuffer;
-  
+        
+        // With singleFile option, no page number is appended
+        outputPath = `${outputPrefix}.png`;
+        
+        // Read the generated image
+        const imageBuffer = await fs.readFile(outputPath);
+        
+        // Clean up
+        if (isTempFile) await fs.unlink(finalPdfPath).catch(() => {});
+        await fs.unlink(outputPath).catch(() => {});
+        
+        return imageBuffer;
     } catch (error) {
-      if (isTempFile) await fs.unlink(finalPdfPath).catch(() => {});
-      await fs.unlink(outputPath).catch(() => {});
-      
-      console.error(`PDF rendering error: ${error.message}`);
-      throw error;
+        // Clean up on error
+        if (isTempFile) {
+            try { await fs.unlink(finalPdfPath); } catch (e) {}
+        }
+        if (outputPath) {
+            try { await fs.unlink(outputPath); } catch (e) {}
+        }
+        
+        console.error(`PDF rendering error: ${error.message}`);
+        throw error;
     }
-  }
-  async function getPdfMetadata(pdfPath) {
+}
+
+// For getting PDF metadata
+async function getPdfMetadata(pdfPath) {
     let isTempFile = false;
+    let finalPdfPath = pdfPath;
+    
     try {
-      let finalPdfPath = pdfPath;
-
-      if (pdfPath.startsWith('http')) {
-        const response = await axios.get(pdfPath, { 
-          responseType: 'arraybuffer',
-          validateStatus: status => status >= 200 && status < 300
-        });
-        finalPdfPath = path.join(__dirname, `temp-meta-${Date.now()}.pdf`);
-        await fs.writeFile(finalPdfPath, response.data);
-        isTempFile = true;
-      }
-
-      const info = await poppler.info(finalPdfPath);
-      const stats = await fs.stat(finalPdfPath);
-  
-      if (isTempFile) await fs.unlink(finalPdfPath);
-  
-      return {
-        pageCount: parseInt(info.pages, 10),
-        title: info.title || null,
-        author: info.author || null,
-        fileSize: stats.size
-      };
-  
+        // Download the PDF if it's a URL
+        if (pdfPath.startsWith('http')) {
+            const response = await axios.get(pdfPath, { 
+                responseType: 'arraybuffer',
+                validateStatus: status => status >= 200 && status < 300
+            });
+            finalPdfPath = path.join(__dirname, `temp-meta-${Date.now()}.pdf`);
+            await fs.writeFile(finalPdfPath, response.data);
+            isTempFile = true;
+        }
+        
+        // Get file stats
+        const stats = await fs.stat(finalPdfPath);
+        
+        // Create Poppler instance and get info
+        const poppler = new Poppler();
+        const infoOutput = await poppler.pdfInfo(finalPdfPath);
+        
+        // Parse the output text from pdfInfo
+        // The output is typically a string with key-value pairs
+        const info = parsePdfInfoOutput(infoOutput);
+        
+        // Clean up temporary file if needed
+        if (isTempFile) await fs.unlink(finalPdfPath).catch(() => {});
+        
+        return {
+            pageCount: parseInt(info.Pages) || 0,
+            title: info.Title || null,
+            author: info.Author || null,
+            fileSize: stats.size
+        };
     } catch (error) {
-      console.error('Error extracting PDF metadata:', error);
-      return {
-        pageCount: 0,
-        title: null,
-        author: null
-      };
+        if (isTempFile) {
+            try { await fs.unlink(finalPdfPath); } catch (e) {}
+        }
+        
+        console.error('Error extracting PDF metadata:', error);
+        return {
+            pageCount: 0,
+            title: null,
+            author: null
+        };
     }
-  }
+}
+
+// Helper function to parse pdfInfo output
+function parsePdfInfoOutput(output) {
+    if (!output || typeof output !== 'string') {
+        return {};
+    }
+    
+    const result = {};
+    const lines = output.split('\n');
+    
+    for (const line of lines) {
+        const match = line.match(/^(.*?):(.*)$/);
+        if (match) {
+            const key = match[1].trim();
+            const value = match[2].trim();
+            result[key] = value;
+        }
+    }
+    
+    return result;
+}
 
 export {
     getArticleSharings,
