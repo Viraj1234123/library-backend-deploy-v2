@@ -5,7 +5,10 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 
 const getAnnouncements = asyncHandler(async (req, res) => {
-    const announcements = await Announcement.find();
+    const announcements = await Announcement.find().sort({ updatedAt: -1 });
+    if (!announcements) {
+        throw new ApiError(404, "Announcements not found")
+    }
     return res.status(200).json(
         new ApiResponse(200, announcements, "Announcements fetched successfully")
     )

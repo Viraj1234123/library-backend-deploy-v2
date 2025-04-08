@@ -4,9 +4,11 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Complaint } from "../models/complaint.model.js";
 import { Student } from "../models/student.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import transporter from "../utils/email.js";
+import { complaintMailHTML, feedbackMailHTML, resolvedComplaintMailHTML, resolvedFeedbackMailHTML } from "../utils/mails.js";
 
 const getComplaintsAndFeedbacks = asyncHandler(async(req, res) => {
-    const complaints = await Complaint.find().populate('studentId','name rollNo');
+    const complaints = await Complaint.find().populate('studentId','name rollNo').sort({status: 1});
     return res.status(200).json(
         new ApiResponse(200, complaints, "Complaints and Feedbacks fetched successfully")
     )
@@ -23,14 +25,14 @@ const getComplaintOrFeedback = asyncHandler(async(req, res) => {
 });
 
 const getComplaints = asyncHandler(async(req, res) => {
-    const complaints = await Complaint.find({category: 'Complaint'}).populate('studentId','name rollNo');
+    const complaints = await Complaint.find({category: 'Complaint'}).populate('studentId','name rollNo').sort({status: 1});
     return res.status(200).json(
         new ApiResponse(200, complaints, "Complaints fetched successfully")
     )
 });
 
 const getFeedbacks = asyncHandler(async(req, res) => {
-    const complaints = await Complaint.find({category: 'Feedback'}).populate('studentId','name rollNo');
+    const complaints = await Complaint.find({category: 'Feedback'}).populate('studentId','name rollNo').sort({status: 1});
     return res.status(200).json(
         new ApiResponse(200, complaints, "Feedbacks fetched successfully")
     )
@@ -43,8 +45,6 @@ const addComplaint = asyncHandler(async(req, res) => {
     if (!title || !description || !category) {
         throw new ApiError(400, "All fields are required")
     }
-
-    console.log(req.files);
 
     if(req.files){
         for(let i = 0; i < req.files.length; i++){
@@ -61,9 +61,41 @@ const addComplaint = asyncHandler(async(req, res) => {
         throw new ApiError(500, "Error while adding complaint/Feedback")
     }
 
-    return res.status(201).json(
+    res.status(201).json(
         new ApiResponse(201, complaint, "Complaint/Feedback added successfully")
-    )
+    );
+
+    if(category == 'Complaint'){
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: student.email,
+            subject: "New Complaint raised",
+            html: complaintMailHTML(student.name, complaint.title)
+        };
+        try{
+            await transporter.sendMail(mailOptions);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+    else if(category == 'Feedback'){
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: student.email,
+            subject: "Regarding your feedback to the library",
+            html: feedbackMailHTML(student.name, complaint.title)
+        };
+        try{
+            await transporter.sendMail(mailOptions);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+
+    return;
+
 });
 
 const updateComplaint = asyncHandler(async(req, res) => {
@@ -97,9 +129,43 @@ const updateComplaint = asyncHandler(async(req, res) => {
 
     await complaint.save();
 
-    return res.status(200).json(
+    res.status(200).json(
         new ApiResponse(200, complaint, "Complaint/Feedback updated successfully")
     )
+
+    if(status == 'resolved'){
+        const student = await Student.findById(complaint.studentId);
+        if(complaint.category == 'Complaint'){
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: student.email,
+                subject: "Your complaint has been resolved",
+                html: resolvedComplaintMailHTML(student.name, complaint.title)
+            };
+            try{
+                await transporter.sendMail(mailOptions);
+            }
+            catch(err){
+                console.log(err);
+            }
+        }
+        else if(complaint.category == 'Feedback'){
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: student.email,
+                subject: "Your feedback has been resolved",
+                html: resolvedFeedbackMailHTML(student.name, complaint.title)
+            };
+            try{
+                await transporter.sendMail(mailOptions);
+            }
+            catch(err){
+                console.log(err);
+            }
+        }
+    }
+    
+    return;
 });
 
 const deleteComplaint = asyncHandler(async(req, res) => {

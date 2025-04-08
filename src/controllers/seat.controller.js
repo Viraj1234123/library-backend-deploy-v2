@@ -5,6 +5,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { SeatBooking } from "../models/seatBooking.model.js";
 import { Student } from "../models/student.model.js";
 
+const maxCoordinate = 20;
+
 const getSeats = asyncHandler(async(req, res) => {
     const seats = await Seat.find()
     return res.status(200).json(
@@ -38,10 +40,13 @@ const getSeatsByRoom = asyncHandler(async(req, res) => {
 });
 
 const addSeat = asyncHandler(async(req, res) => {
-    const { seatType, seatNumber, floor, room, x, y } = req.body
+    const { seatType, seatNumber, floor, room, coordinates } = req.body;
+
+    const x = coordinates.x;
+    const y = coordinates.y;
 
     if(!seatType || !seatNumber || !floor || !room || !x || !y){
-        throw new ApiError(400, "All fields are required")
+        throw new ApiError(400, "All fields are required");
     }
 
     if(seatNumber < 1){
@@ -50,6 +55,10 @@ const addSeat = asyncHandler(async(req, res) => {
 
     if(x<0 || y<0){
         throw new ApiError(400, "Keep coordinates above the origin (that is greater then 0)");
+    }
+
+    if(x > maxCoordinate || y > maxCoordinate){
+        throw new ApiError(400, "Coordinates cannot be greater than " + maxCoordinate);
     }
 
     const existingSeat = await Seat.findOne({ seatType: seatType, seatNumber: seatNumber, floor: floor, room: room });
@@ -92,6 +101,10 @@ const addSeats = asyncHandler(async(req, res) => {
             throw new ApiError(400, "Keep coordinates above the origin (that is greater then 0)");
         }
 
+        if(coordinates.x > maxCoordinate || coordinates.y > maxCoordinate){
+            throw new ApiError(400, "Coordinates cannot be greater than " + maxCoordinate);
+        }
+
         const existingSeat = await Seat.findOne({ seatType: seatType, seatNumber: seatNumber, floor: floor, room: room });
 
         if(existingSeat) {
@@ -126,7 +139,7 @@ const updateSeat = asyncHandler(async(req, res) => {
         throw new ApiError(400, "Some field is required");
     }
 
-    const seat = await Seat.findById(req.body.id);
+    const seat = await Seat.findById(req.params.id);
 
     if(seatType){
         seat.seatType = seatType
@@ -139,12 +152,41 @@ const updateSeat = asyncHandler(async(req, res) => {
     }
     if(isAvailable != undefined){
         seat.isAvailable = isAvailable
+        const existingSeatBookings = await SeatBooking.find({ seatId: seat._id, endTime: { $gte: new Date() } });
+        existingSeatBookings.forEach(async (seatBooking) => {
+            await seatBooking.deleteOne({ _id: seatBooking._id });
+        }
+        );
     }
     if(room){
         seat.room = room
     }
     if(coordinates){
         seat.coordinates = coordinates
+    }
+
+    if(seat.seatNumber < 1){
+        throw new ApiError(400, "Seat number cannot be less than 1");
+    }
+
+    if(seat.coordinates.x<0 || seat.coordinates.y<0){
+        throw new ApiError(400, "Keep coordinates above the origin (that is greater then 0)");
+    }
+
+    if(seat.coordinates.x > maxCoordinate || seat.coordinates.y > maxCoordinate){
+        throw new ApiError(400, "Coordinates cannot be greater than " + maxCoordinate);
+    }
+
+    const existingSeat = await Seat.findOne({ seatType: seat.seatType, seatNumber: seat.seatNumber, floor: seat.floor, room: seat.room });
+
+    if(existingSeat && existingSeat._id.toString() !== seat._id.toString() ) {
+        throw new ApiError(409, "This seat already exists");
+    }
+
+    const existingCoordinates = await Seat.findOne({ floor: seat.floor, room: seat.room, coordinates: seat.coordinates });
+
+    if(existingCoordinates && existingCoordinates._id.toString() !== seat._id.toString()) {
+        throw new ApiError(409, "This coordinates are already occupied by another seat");
     }
 
     await seat.save();
@@ -170,16 +212,6 @@ const deleteSeat = asyncHandler(async(req, res) => {
 
     try{
         for (let i = 0; i < seatBookings.length; i++) {
-            if(seatBookings[i].startTime > new Date()){
-                const student = await Student.findById(seatBookings[i].studentId);
-                if(seatBookings[i].startTime.getDate() === new Date().getDate()){
-                    student.bookedSeatHours -= 1;
-                }
-                else{
-                    student.bookedSeatHoursForTomorrow -= 1;
-                }
-                await student.save({session});
-            }
             await seatBookings[i].deleteOne({ _id: seatBookings[i]._id }).session(session);
         }
         await seat.deleteOne({ _id: seat._id }).session(session);
@@ -214,6 +246,10 @@ const changeSeatAvailabilityForRoom = asyncHandler(async(req, res) => {
 
     for(let i=0; i<seats.length; i++){
         seats[i].isAvailable = isAvailable;
+        const existingSeatBookings = await SeatBooking.find({ seatId: seats[i]._id, endTime: { $gte: new Date() } });
+        existingSeatBookings.forEach(async (seatBooking) => {
+            await seatBooking.deleteOne({ _id: seatBooking._id });
+        });
         await seats[i].save();
     }
 
@@ -223,4 +259,16 @@ const changeSeatAvailabilityForRoom = asyncHandler(async(req, res) => {
 
 });
 
-export { getSeats, getSeat, addSeat, updateSeat, deleteSeat, getSeatsByRoom, addSeats, getAvailableSeats, changeSeatAvailabilityForRoom };
+const getAllRooms = asyncHandler(async(req, res) => {
+    const rooms = await Seat.distinct("room");
+
+    if(rooms.length === 0){
+        throw new ApiError(404, "No rooms found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, rooms, "Rooms fetched successfully")
+    )
+});
+
+export { getSeats, getSeat, addSeat, updateSeat, deleteSeat, getSeatsByRoom, addSeats, getAvailableSeats, changeSeatAvailabilityForRoom, getAllRooms };

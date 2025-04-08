@@ -3,26 +3,29 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ArticleSharing } from "../models/articleSharing.model.js";
+import { articleRequestMailHTML, articleRequestApprovedMailHTML } from "../utils/mails.js";
+import transporter from "../utils/email.js";
 import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 import http from 'http';
 import https from 'https';
 import pkg from 'node-poppler';
+import { Student } from "../models/student.model.js";
 const Poppler = pkg.default || pkg.Poppler;
 const poppler = new Poppler();
 
 const __dirname = path.dirname('public');
 
 const getArticleSharings = asyncHandler(async(req, res) => {
-    const articleSharings = await ArticleSharing.find();
+    const articleSharings = await ArticleSharing.find().populate('studentId', 'name rollNo').sort({ requestedAt: -1 });
     return res.status(200).json(
         new ApiResponse(200, articleSharings, "Article Sharings fetched successfully")
     )
 });
 
 const getArticleSharing = asyncHandler(async(req, res) => {
-    const articleSharing = await ArticleSharing.findById(req.params.id);
+    const articleSharing = await ArticleSharing.findById(req.params.id).populate('studentId', 'name rollNo');
     if (!articleSharing) {
         throw new ApiError(404, "Article Sharing not found")
     }
@@ -33,7 +36,7 @@ const getArticleSharing = asyncHandler(async(req, res) => {
 
 const getArticleSharingsByDOI = asyncHandler(async(req, res) => {
     const DOI = req.query.DOI;
-    const articleSharings = await ArticleSharing.find({DOI: DOI});
+    const articleSharings = await ArticleSharing.find({DOI: DOI}).populate('studentId', 'name rollNo').sort({ requestedAt: -1 });
     return res.status(200).json(
         new ApiResponse(200, articleSharings, "Article Sharings fetched successfully")
     )
@@ -56,20 +59,52 @@ const requestArticle = asyncHandler(async(req, res) => {
     }
 
     const studentId = req.student._id;
+    const student = await Student.findOne({ _id: studentId });
+    if (!student) {
+        throw new ApiError(404, "Student not found")
+    }
+
     const articleSharing = await ArticleSharing.create({ DOI, title, authors, journal, publicationYear, additionalInfo, studentId: studentId, requestedAt: new Date() });
 
     if (!articleSharing) {
         throw new ApiError(500, "Error while requesting article")
     }
 
-    return res.status(201).json(
+    res.status(201).json(
         new ApiResponse(201, articleSharing, "Article requested successfully")
-    )
+    );
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: student.email,
+        subject: "Your Article Request has been received by the library",
+        html: articleRequestMailHTML(student.name, title, authors, journal, publicationYear, DOI),
+    };
+
+    try{
+        await transporter.sendMail(mailOptions);
+    }
+    catch(error){
+        console.log("Error sending email:", error);
+    }
+
+    return;
+
 });
 
 const approveArticleRequest = asyncHandler(async(req, res) => {
     const { id, expiryDays } = req.body;    
     const articleSharing = await ArticleSharing.findById(id);
+    const student = await Student.findById(articleSharing.studentId);
+    if (!student) {
+        throw new ApiError(404, "Student not found")
+    }
+    if (!expiryDays) {
+        throw new ApiError(400, "Expiry days are required")
+    }
+    if (expiryDays < 1) {
+        throw new ApiError(400, "Expiry days should be greater than 0")
+    }
     if (!articleSharing) {
         throw new ApiError(404, "Article Sharing not found")
     }
@@ -88,9 +123,25 @@ const approveArticleRequest = asyncHandler(async(req, res) => {
     articleSharing.link = `${process.env.STUDENT_URL}/article/${articleSharing._id}`;
     await articleSharing.save();
 
-    return res.status(200).json(
+    res.status(200).json(
         new ApiResponse(200, articleSharing, "Article request approved successfully")
     )
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: student.email,
+        subject: "Article Request Approved",
+        html: articleRequestApprovedMailHTML(student.name, articleSharing.title, articleSharing.authors, articleSharing.journal, articleSharing.publicationYear, articleSharing.DOI, articleSharing.validTill),
+    };
+
+    try{
+        await transporter.sendMail(mailOptions);
+    }
+    catch(error){
+        console.log("Error sending email:", error);
+    }
+
+    return;
 });
 
 const updateArticleRequest = asyncHandler(async(req, res) => {
@@ -283,7 +334,7 @@ async function renderPdfPageToImage(pdfPath, pageNumber = 1, options = {}) {
             firstPageToConvert: pageNumber,
             lastPageToConvert: pageNumber,
             // For resolution/quality, use one of these options:
-            resolutionXYAxis: options.dpi || 1000, // Use resolutionXYAxis instead of scale
+            resolutionXYAxis: options.dpi || 300, // Use resolutionXYAxis instead of scale
             singleFile: true // Important to get a single output file
         });
         
@@ -337,7 +388,6 @@ async function getPdfMetadata(pdfPath) {
         const infoOutput = await poppler.pdfInfo(finalPdfPath);
         
         // Parse the output text from pdfInfo
-        // The output is typically a string with key-value pairs
         const info = parsePdfInfoOutput(infoOutput);
         
         // Clean up temporary file if needed
@@ -363,7 +413,6 @@ async function getPdfMetadata(pdfPath) {
     }
 }
 
-// Helper function to parse pdfInfo output
 function parsePdfInfoOutput(output) {
     if (!output || typeof output !== 'string') {
         return {};
@@ -373,14 +422,16 @@ function parsePdfInfoOutput(output) {
     const lines = output.split('\n');
     
     for (const line of lines) {
-        const match = line.match(/^(.*?):(.*)$/);
-        if (match) {
-            const key = match[1].trim();
-            const value = match[2].trim();
-            result[key] = value;
+        const colonIndex = line.indexOf(':');
+        if (colonIndex > 0) {
+            const key = line.substring(0, colonIndex).trim();
+            const value = line.substring(colonIndex + 1).trim();
+            
+            if (key && value !== undefined) {
+                result[key] = value;
+            }
         }
     }
-    
     return result;
 }
 

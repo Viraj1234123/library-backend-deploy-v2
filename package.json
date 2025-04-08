@@ -31,6 +31,7 @@
     "passport-google-oauth20": "^2.0.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.0.375",
+    "socket.io": "^4.8.1",
     "ws": "^8.18.1"
   }
 }

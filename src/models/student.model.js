@@ -79,6 +79,10 @@ const studentSchema = new Schema(
             default: 0,
             required: true
         },
+        blockedUntil: {
+            type: Date,
+            default: new Date(),
+        },
         refreshToken: {
             type: String
         }

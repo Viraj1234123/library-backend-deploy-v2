@@ -651,21 +651,21 @@ const cancelNotIssuedBookings = async () => {
 };
 
 
-try{
-    cron.schedule('0 0 * * *', () => {
-        console.log('Adding fines');
-        addFine();
-        console.log('Cancelling not issued bookings');
-        cancelNotIssuedBookings();
-        console.log('Sending mails for due date reminder');
-        dueDateReminder();
-        console.log('Sending mails for advanced due date reminder');
-        advanceDueDateReminder();
-    });
-}
-catch(error){
-    console.log(error);
-}
+// try{
+//     cron.schedule('0 0 * * *', () => {
+//         console.log('Adding fines');
+//         addFine();
+//         console.log('Cancelling not issued bookings');
+//         cancelNotIssuedBookings();
+//         console.log('Sending mails for due date reminder');
+//         dueDateReminder();
+//         console.log('Sending mails for advanced due date reminder');
+//         advanceDueDateReminder();
+//     });
+// }
+// catch(error){
+//     console.log(error);
+// }
 
 
 

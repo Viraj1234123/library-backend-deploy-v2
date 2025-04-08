@@ -60,7 +60,6 @@ export const googleLogin = async (req, res) => {
         const { sub, email, name } = payload;
   
         const googleId = sub;
-        console.log('Google ID:', googleId);
 
         if(email === 'library.iitrpr@gmail.com'){
 

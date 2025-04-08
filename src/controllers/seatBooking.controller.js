@@ -7,7 +7,7 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { Student } from '../models/student.model.js';
 import { PauseBooking } from '../models/pauseBooking.model.js';
 import transporter from '../utils/email.js';
-import { seatBookedMailHTML, cancelSeatBookingMailHTML, rejectSeatBookingMailHTML, upcomingSeatBookingMailHTML, endingSeatBookingMailHTML } from '../utils/mails.js';
+import { seatBookedMailHTML, cancelSeatBookingMailHTML, rejectSeatBookingMailHTML, upcomingSeatBookingMailHTML, endingSeatBookingMailHTML, pauseBookingsForRoomMailHTML } from '../utils/mails.js';
 import cron from 'node-cron';
 
 const maxBookedSeatHoursPerDay = 5;
@@ -24,6 +24,10 @@ const bookSeat = asyncHandler(async (req, res) => {
     }
 
     const studentId = student._id;
+
+    if(student.blockedUntil > new Date()){
+        throw new ApiError(403, 'Currently the student is blocked from booking');
+    }
 
     if ([seatId, startTime, studentId].some((field) => field == undefined)) {
         throw new ApiError(400, 'All fields are required');
@@ -64,6 +68,31 @@ const bookSeat = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Bookings are paused for this time for this room');
     }
 
+    // booked seat hours for today and tomorrow
+    const bookedSeatHoursForTomorrow = await SeatBooking.aggregate([
+        { $match: { studentId: studentId, startTime: { $gte: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(0,0,0,0)) } } },
+        { $group: { _id: null, totalBookedHours: { $sum: 1 } } }
+    ]).then((result) => {
+        if (result.length > 0) {
+            return result[0].totalBookedHours;
+        } else {
+            return 0;
+        }
+    });
+
+    const bookedSeatHours = await SeatBooking.aggregate([
+        { $match: { studentId: studentId, startTime: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
+        { $group: { _id: null, totalBookedHours: { $sum: 1 } } }
+    ]).then((result) => {
+        if (result.length > 0) {
+            return result[0].totalBookedHours;
+        } else {
+            return 0;
+        }
+    });
+
+    const bookedSeatHoursForToday = bookedSeatHours - bookedSeatHoursForTomorrow;
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -77,11 +106,11 @@ const bookSeat = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Student already has a seat booked for this time');
     }
 
-    if (student.bookedSeatHours >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
+    if (bookedSeatHoursForToday >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
         throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
 
-    if (student.bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
+    if (bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
         throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for tomorrow`);
     }
 
@@ -97,14 +126,6 @@ const bookSeat = asyncHandler(async (req, res) => {
             ],
             { session }
         );
-
-        if(startTime.getDate() != new Date().getDate()){
-            student.bookedSeatHoursForTomorrow += 1;
-        }
-        else{
-            student.bookedSeatHours += 1;
-        }
-        await student.save({ session });
 
         await session.commitTransaction();
 
@@ -188,6 +209,31 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Bookings are paused for this time for this room');
     }
 
+    // booked seat hours for today and tomorrow
+    const bookedSeatHoursForTomorrow = await SeatBooking.aggregate([
+        { $match: { studentId: studentId, startTime: { $gte: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(0,0,0,0)) } } },
+        { $group: { _id: null, totalBookedHours: { $sum: 1 } } }
+    ]).then((result) => {
+        if (result.length > 0) {
+            return result[0].totalBookedHours;
+        } else {
+            return 0;
+        }
+    });
+
+    const bookedSeatHours = await SeatBooking.aggregate([
+        { $match: { studentId: studentId, startTime: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
+        { $group: { _id: null, totalBookedHours: { $sum: 1 } } }
+    ]).then((result) => {
+        if (result.length > 0) {
+            return result[0].totalBookedHours;
+        } else {
+            return 0;
+        }
+    });
+
+    const bookedSeatHoursForToday = bookedSeatHours - bookedSeatHoursForTomorrow;
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -201,11 +247,11 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Student already has a seat booked for this time');
     }
 
-    if (student.bookedSeatHours >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
+    if (bookedSeatHoursForToday >= maxBookedSeatHoursPerDay && startTime.getDate() == new Date().getDate()) {
         throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
 
-    if (student.bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
+    if (bookedSeatHoursForTomorrow >= maxBookedSeatHoursPerDay && startTime.getDate() != new Date().getDate()) {
         throw new ApiError(400, `Student has already booked seats for ${maxBookedSeatHoursPerDay} hours for today`);
     }
 
@@ -221,15 +267,6 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
             ],
             { session }
         );
-        
-
-        if(startTime.getDate() != new Date().getDate()){
-            student.bookedSeatHoursForTomorrow += 1;
-        }
-        else{
-            student.bookedSeatHours += 1;
-        }
-        await student.save({ session });
 
         await session.commitTransaction();
 
@@ -297,9 +334,6 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
     try {
         await SeatBooking.deleteOne({ _id: bookingId }).session(session);
-
-        student.bookedSeatHours -= 1;
-        await student.save({ session });
 
         await session.commitTransaction();
 
@@ -432,8 +466,9 @@ const rejectBooking = asyncHandler(async (req, res) => {
         await SeatBooking.deleteOne({ _id: bookingId }).session(session);
 
         const student = await Student.findById(booking.studentId);
-        student.bookedSeatHours -= 1;
-        await student.save({ session });
+
+        await session.commitTransaction();
+        res.status(200).json(new ApiResponse(200, {}, 'Booking rejected successfully'));
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
@@ -446,12 +481,10 @@ const rejectBooking = asyncHandler(async (req, res) => {
             await transporter.sendMail(mailOptions)
         }
         catch(error){
-            throw new ApiError(500, error.message || 'Error sending mail');
+            console.log('Error sending mail');
         }
 
-        await session.commitTransaction();
-
-        return res.status(200).json(new ApiResponse(200, {}, 'Booking rejected successfully'));
+        return;
     } catch (error) {
         await session.abortTransaction();
         throw new ApiError(500, error.message || 'An error occurred while rejecting booking');
@@ -525,20 +558,6 @@ const pauseBookingsForRoom = asyncHandler(async (req, res) => {
         if(seat.room != room){
             continue;
         }
-        const student = await Student.findById(booking.studentId);
-        if(!student){
-            throw new ApiError(404, 'Student not found');
-        }
-
-        if(booking.startTime.getDate() == new Date().getDate()){
-            student.bookedSeatHours -= 1;
-            await student.save();
-        }
-
-        if(booking.startTime.getDate() == new Date().setDate(new Date().getDate()+1)){
-            student.bookedSeatHoursForTomorrow -= 1;
-            await student.save();
-        }
 
         await SeatBooking.deleteOne({ _id: booking._id });
 
@@ -570,11 +589,7 @@ const pauseBookingsForRoom = asyncHandler(async (req, res) => {
             from: process.env.EMAIL_USER,
             to: student.email,
             subject: 'Seat bookings paused in the library',
-            html: `Seat bookings for room <b>${room}</b> have been paused from <b>${startTime}</b> to <b>${endTime}</b> due to <b>${reason}</b>.
-            <br> All the bookings for this time has been cancelled. We apologize for the inconvenience.
-            <br> Regards
-            <br> Library, IIT Ropar
-            `,
+            html: pauseBookingsForRoomMailHTML(student.name, room, reason, startTime, endTime),
         };
 
         try{
@@ -584,6 +599,20 @@ const pauseBookingsForRoom = asyncHandler(async (req, res) => {
             console.log('Error sending mail');
         }
     }
+});
+
+const resumeBookingsForRoom = asyncHandler(async (req, res) => {
+    const id = req.params.id;
+
+    const pausedBooking = await PauseBooking.findById(id);
+    if (!pausedBooking) {
+        throw new ApiError(404, 'Paused booking not found');
+    }
+
+    await pausedBooking.deleteOne();
+
+    res.status(200).json(new ApiResponse(200, {}, 'Bookings resumed successfully'));
+
 });
 
 const getUpcomingPauseBookings = asyncHandler(async (req, res) => {
@@ -636,15 +665,30 @@ const getAllPauseBookings = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, pauseBookings, 'All pause bookings fetched successfully'));
 });
 
-try{
-    cron.schedule('56 23 * * *', async() => {
-        await Student.updateMany({isAdminApproved: true}, { bookedSeatHours: Student.bookedSeatHoursForTomorrow, bookedSeatHoursForTomorrow: 0 });
-        console.log('Reset booked seat hours');
-    });
-}
-catch(err){
-    console.log('Error resetting booked seat hours');
-}
+const blockStudentFromBookingForSomeTime = asyncHandler(async (req, res) => {
+    const { rollNo, numberOfDaysToBlockStudent } = req.body;
+
+    const student = await Student.findOne({ rollNo });
+
+    if (!student) {
+        throw new ApiError(404, 'Student not found');
+    }
+
+    student.blockedUntil = new Date(new Date().setDate(new Date().getDate() + numberOfDaysToBlockStudent));
+    await student.save();
+
+    res.status(200).json(new ApiResponse(200, {}, 'Student blocked successfully'));
+});
+
+// try{
+//     cron.schedule('56 23 * * *', async() => {
+//         await Student.updateMany({isAdminApproved: true}, { bookedSeatHours: Student.bookedSeatHoursForTomorrow, bookedSeatHoursForTomorrow: 0 });
+//         console.log('Reset booked seat hours');
+//     });
+// }
+// catch(err){
+//     console.log('Error resetting booked seat hours');
+// }
 
 try{
     cron.schedule('50 * * * *', async () => {
@@ -714,4 +758,4 @@ catch(err){
     console.log('Error sending reminder seat booking mails.');
 }
 
-export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom };
+export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom, blockStudentFromBookingForSomeTime, resumeBookingsForRoom };
