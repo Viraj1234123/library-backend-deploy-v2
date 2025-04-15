@@ -355,7 +355,10 @@ const updateProfile = asyncHandler(async(req,res) => {
     if(gender){
         student.gender = gender;
     }
-    if(phoneNumber){
+    if(phoneNumber) {
+        if(!(/^\d{10}$/).test(phoneNumber)) {
+            throw new ApiError(400, "Please enter a valid phone number");
+        }
         student.phoneNumber = phoneNumber;
     }
     if(password){

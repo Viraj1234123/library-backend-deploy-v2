@@ -13,4 +13,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const transporter_article = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
+  service: process.env.EMAIL_SERVICE,
+  auth: {
+    user: process.env.EMAIL_ARTICLE,
+    pass: process.env.EMAIL_ARTICLE_PASS
+  },
+});
+
 export default transporter;
+export { transporter_article };

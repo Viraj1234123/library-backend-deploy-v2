@@ -377,7 +377,7 @@ const getBookingsOfStudent = asyncHandler(async (req, res) => {
 
 const getAllBookings = asyncHandler(async (req, res) => {
 
-    const bookings = await SeatBooking.find().populate('seatId','-createdAt -updatedAt').populate('studentId','-password -refreshToken -createdAt -updatedAt');
+    const bookings = await SeatBooking.find().populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: 1 });
 
     return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
 });
@@ -673,11 +673,52 @@ const blockStudentFromBookingForSomeTime = asyncHandler(async (req, res) => {
     if (!student) {
         throw new ApiError(404, 'Student not found');
     }
+    
+    await SeatBooking.deleteMany({ studentId: student._id, endTime: { $gte: new Date() } });
 
     student.blockedUntil = new Date(new Date().setDate(new Date().getDate() + numberOfDaysToBlockStudent));
     await student.save();
 
     res.status(200).json(new ApiResponse(200, {}, 'Student blocked successfully'));
+});
+
+const getUpcomingBookings = asyncHandler(async (req, res) => {
+    const bookings = await SeatBooking.find({ endTime: { $gt: new Date() } }).populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: 1 });
+    return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
+});
+
+const getBookingsByParameters = asyncHandler(async (req, res) => {
+    const { fromTime, toTime, rollNo } = req.query;
+
+    if(!fromTime || !toTime){
+        if(rollNo){
+            const student = await Student.findOne({ rollNo });
+            if(!student){
+                throw new ApiError(404, 'Student not found');
+            }
+            const bookings = await SeatBooking.find({ studentId: student._id }).populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: -1 });
+            return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
+        }
+        else{
+            const bookings = await SeatBooking.find().populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: -1 });
+            return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
+        }
+    }
+    else{
+        if(rollNo){
+            const student = await Student.findOne({ rollNo });
+            if(!student){
+                throw new ApiError(404, 'Student not found');
+            }
+            const bookings = await SeatBooking.find({ studentId: student._id, startTime: { $gte: fromTime }, endTime: { $lte: toTime } }).populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: -1 });
+            return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
+        }
+        else{
+            const bookings = await SeatBooking.find({ startTime: { $gte: fromTime }, endTime: { $lte: toTime } }).populate('seatId','-createdAt -updatedAt').populate('studentId','name rollNo email').sort({ startTime: -1 });
+            return res.status(200).json(new ApiResponse(200, bookings, 'Bookings fetched successfully'));
+        }
+    }
+    
 });
 
 // try{
@@ -758,4 +799,4 @@ catch(err){
     console.log('Error sending reminder seat booking mails.');
 }
 
-export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom, blockStudentFromBookingForSomeTime, resumeBookingsForRoom };
+export { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsOfStudent, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom, blockStudentFromBookingForSomeTime, resumeBookingsForRoom, getUpcomingBookings, getBookingsByParameters };

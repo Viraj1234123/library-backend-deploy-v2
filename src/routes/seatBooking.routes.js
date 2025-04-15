@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudent, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom, blockStudentFromBookingForSomeTime, resumeBookingsForRoom } from '../controllers/seatBooking.controller.js';
+import { getAllBookings, bookSeat, bookSeatByAdmin, cancelBooking, getBookingsByStudentId, getBookingsBySeatId, getBookingsBySeatIdForToday, rejectBooking, getBookingsOfStudent, getBookingsOfStudentWithSeatDetails, getAvailableSeatsByStartTime, pauseBookingsForRoom, getAllPauseBookings, getUpcomingPauseBookings, getPauseSlotsByRoom, blockStudentFromBookingForSomeTime, resumeBookingsForRoom, getUpcomingBookings, getBookingsByParameters } from '../controllers/seatBooking.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { verifyJWTAdmin } from '../middlewares/auth.middleware.js';
 
@@ -22,5 +22,7 @@ router.route("/get-all-pause-bookings").get(verifyJWT, getAllPauseBookings);
 router.route("/get-upcoming-pause-bookings").get(verifyJWT, getUpcomingPauseBookings);
 router.route("/get-pause-slots-by-room/").get(verifyJWT, getPauseSlotsByRoom);
 router.route("/block-student-from-booking-for-specific-period").patch(verifyJWTAdmin, blockStudentFromBookingForSomeTime);
+router.route("/get-upcoming-bookings").get(verifyJWTAdmin, getUpcomingBookings);
+router.route("/get-bookings-by-parameters").get(verifyJWT, getBookingsByParameters);
 
 export default router;

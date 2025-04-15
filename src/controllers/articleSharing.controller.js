@@ -3,8 +3,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ArticleSharing } from "../models/articleSharing.model.js";
-import { articleRequestMailHTML, articleRequestApprovedMailHTML } from "../utils/mails.js";
-import transporter from "../utils/email.js";
+import { articleRequestMailHTML, articleRequestApprovedMailHTML, articleRequestMailAdminHTML, articleRequestApprovedMailAdminHTML } from "../utils/mails.js";
+import { transporter_article } from "../utils/email.js";
 import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
@@ -75,14 +75,28 @@ const requestArticle = asyncHandler(async(req, res) => {
     );
 
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: process.env.EMAIL_ARTICLE,
         to: student.email,
         subject: "Your Article Request has been received by the library",
         html: articleRequestMailHTML(student.name, title, authors, journal, publicationYear, DOI),
     };
 
     try{
-        await transporter.sendMail(mailOptions);
+        await transporter_article.sendMail(mailOptions);
+    }
+    catch(error){
+        console.log("Error sending email:", error);
+    }
+
+    const adminMailOptions = {
+        from: process.env.EMAIL_ARTICLE,
+        to: process.env.EMAIL_ARTICLE,
+        subject: "New Article Request",
+        html: articleRequestMailAdminHTML(student.name, student.rollNo, title, authors, journal, publicationYear, DOI),
+    };
+
+    try{
+        await transporter_article.sendMail(adminMailOptions);
     }
     catch(error){
         console.log("Error sending email:", error);
@@ -114,7 +128,7 @@ const approveArticleRequest = asyncHandler(async(req, res) => {
     const DOI = articleSharing.DOI;
     const article = await Article.findOne({ DOI: DOI });
     if (!article) {
-        throw new ApiError(404, "Article not found")
+        throw new ApiError(404, "Article with this DOI not found")
     }
 
     articleSharing.sharedAt = new Date();
@@ -128,14 +142,28 @@ const approveArticleRequest = asyncHandler(async(req, res) => {
     )
 
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: process.env.EMAIL_ARTICLE,
         to: student.email,
         subject: "Article Request Approved",
         html: articleRequestApprovedMailHTML(student.name, articleSharing.title, articleSharing.authors, articleSharing.journal, articleSharing.publicationYear, articleSharing.DOI, articleSharing.validTill),
     };
 
     try{
-        await transporter.sendMail(mailOptions);
+        await transporter_article.sendMail(mailOptions);
+    }
+    catch(error){
+        console.log("Error sending email:", error);
+    }
+
+    const adminMailOptions = {
+        from: process.env.EMAIL_ARTICLE,
+        to: process.env.EMAIL_ARTICLE,
+        subject: "Article Request Approved",
+        html: articleRequestApprovedMailAdminHTML(student.rollNo, articleSharing.title, articleSharing.authors, articleSharing.journal, articleSharing.publicationYear, articleSharing.DOI, articleSharing.validTill),
+    };
+
+    try{
+        await transporter_article.sendMail(adminMailOptions);
     }
     catch(error){
         console.log("Error sending email:", error);

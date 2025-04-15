@@ -136,7 +136,6 @@ const resetPasswordMailHTML = (email, name) => `
             display: inline-block;
             background-color: #1b41c9;
             color: #ffffff;
-            text-decoration: none;
             padding: 10px 20px;
             border-radius: 4px;
             margin: 15px 0;
@@ -178,7 +177,7 @@ const resetPasswordMailHTML = (email, name) => `
         <a href="${process.env.Frontend_URL}/reset-password?token=${jwt.sign({ email }, process.env.JWT_EMAIL_SECRET, { expiresIn: '1h' })}" class="button" target="_blank">Reset Password</a>
     </center>
     
-    <p>If you did not request a password reset, please ignore this email or contact the library information desk at <a href="mailto:library@iitrpr.ac.in">library@iitrpr.ac.in</a>.</p>
+    <p>If you did not request a password reset, please ignore this email or contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
     
     <div class="footer">
         <p>Thank You</p>
@@ -843,7 +842,7 @@ const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
         </tr>
     </table>
 
-    <p>If you have any questions regarding your cancellation, please contact the library information desk at <a href="mailto:library@iitrpr.ac.in">library@iitrpr.ac.in</a>.</p>
+    <p>If you have any questions regarding your cancellation, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
 
     <div class="footer">
         <p>Thank You</p>
@@ -927,7 +926,7 @@ const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
         </tr>
     </table>
 
-    <p>If you have any questions regarding this rejection, please contact the library information desk at <a href="mailto:library@iitrpr.ac.in">library@iitrpr.ac.in</a>.</p>
+    <p>If you have any questions regarding this rejection, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
 
     <div class="footer">
         <p>Thank You</p>
@@ -1124,7 +1123,7 @@ const endingSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
 <body>
     <p>Dear ${name},</p>
 
-    <p>Gentle reminder to leave the following seat booked by you in the library:</p>
+    <p>Gentle reminder to vacate the following seat booked by you in the library:</p>
 
     <table>
         <tr>
@@ -1421,7 +1420,198 @@ const articleRequestMailHTML = (name, title, authors, journal, publicationYear, 
         
         <p>Your request has been successfully recorded in our system and is currently being processed. You will receive a notification once the article is available or if additional information is required.</p>
         
-        <p>If you have any questions regarding your request, please contact the library information desk at <a href="mailto:library@iitrpr.ac.in">library@iitrpr.ac.in</a>.</p>
+        <p>If you have any questions regarding your request, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
+        
+        <div class="footer">
+            <p>Thank You</p>
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
+const articleRequestMailAdminHTML = (name, rollNo, title, authors, journal, publicationYear, DOI) => `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Article Request Confirmation</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #1a237e;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+            }
+            th {
+                background-color: #e8eaf6;
+                color: #1a237e;
+                text-align: left;
+            }
+            th, td {
+                border: 1px solid #dddddd;
+                padding: 12px;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>New Article Request</h2>
+        </div>
+        
+        <p>Dear Sir/Madam,</p>
+        
+        <p>${name} has requested for the following Article:</p>
+        
+        <table>
+            <tr>
+                <th>Student Roll Number</th>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>DOI</th>
+                <th>Journal</th>
+                <th>Publication Year</th>              
+            </tr>
+            <tr>
+                <td>${rollNo}</td>
+                <td>${title}</td>
+                <td>${authors}</td>
+                <td>${DOI}</td>
+                <td>${journal}</td>
+                <td>${publicationYear}</td>
+            </tr>
+        </table>
+        
+        <p>Please look into this request and approve/reject it from the library website.</p>
+        
+        <div class="footer">
+            <p>Thank You</p>
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
+const articleRequestApprovedMailAdminHTML = (rollNo, title, authors, journal, publicationYear, DOI, validTill) => `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Article Request Approved</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #1a237e;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .important-notice {
+                background-color: #e8f5e9;
+                border-left: 4px solid #4caf50;
+                padding: 12px;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+            .button {
+                display: inline-block;
+                background-color: #1a237e;
+                color: white;
+                text-decoration: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                margin: 15px 0;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+            }
+            th {
+                background-color: #e8eaf6;
+                color: #1a237e;
+                text-align: left;
+            }
+            th, td {
+                border: 1px solid #dddddd;
+                padding: 12px;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>Article Request Approved</h2>
+        </div>
+        
+        <p>Dear Sir/Madam</p>
+        
+        <p>The request for the following article has been successfully approved:</p>
+        
+        <table>
+            <tr>
+                <th>Student Roll Number</th>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>DOI</th>
+                <th>Journal</th>
+                <th>Publication Year</th>
+                <th>Access Expiry Time</th>
+            </tr>
+            <tr>
+                <td>${rollNo}</td>
+                <td>${title}</td>
+                <td>${authors}</td>
+                <td>${DOI}</td>
+                <td>${journal}</td>
+                <td>${publicationYear}</td>
+                <td>${validTill}</td>
+            </tr>
+        </table>
+        
+
         
         <div class="footer">
             <p>Thank You</p>
@@ -1841,7 +2031,9 @@ export {
     bookOverdueFineMailHTML,
     cancelNotIssuedBookBookingMailHTML,
     articleRequestMailHTML,
+    articleRequestMailAdminHTML,
     articleRequestApprovedMailHTML, 
+    articleRequestApprovedMailAdminHTML,
     complaintMailHTML,
     feedbackMailHTML, 
     resolvedComplaintMailHTML,
