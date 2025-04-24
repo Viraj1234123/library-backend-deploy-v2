@@ -5,7 +5,7 @@ import { Complaint } from "../models/complaint.model.js";
 import { Student } from "../models/student.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import transporter from "../utils/email.js";
-import { complaintMailHTML, feedbackMailHTML, resolvedComplaintMailHTML, resolvedFeedbackMailHTML } from "../utils/mails.js";
+import { complaintMailHTML, feedbackMailHTML, resolvedComplaintMailHTML, resolvedFeedbackMailHTML, complaintMailAdminHTML, feedbackMailAdminHTML, resolvedComplaintMailAdminHTML, resolvedFeedbackMailAdminHTML } from "../utils/mails.js";
 
 const getComplaintsAndFeedbacks = asyncHandler(async(req, res) => {
     const complaints = await Complaint.find().populate('studentId','name rollNo').sort({status: 1});
@@ -69,11 +69,24 @@ const addComplaint = asyncHandler(async(req, res) => {
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: student.email,
-            subject: "New Complaint raised",
+            subject: "New Grievance raised",
             html: complaintMailHTML(student.name, complaint.title)
         };
         try{
             await transporter.sendMail(mailOptions);
+        }
+        catch(err){
+            console.log(err);
+        }
+
+        const mailOptionsAdmin = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER,
+            subject: "New Grievance received",
+            html: complaintMailAdminHTML(student.name, student.rollNo, complaint.title)
+        };
+        try{
+            await transporter.sendMail(mailOptionsAdmin);
         }
         catch(err){
             console.log(err);
@@ -88,6 +101,19 @@ const addComplaint = asyncHandler(async(req, res) => {
         };
         try{
             await transporter.sendMail(mailOptions);
+        }
+        catch(err){
+            console.log(err);
+        }
+
+        const mailOptionsAdmin = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER,
+            subject: "New Feedback raised",
+            html: feedbackMailAdminHTML(student.name, student.rollNo, complaint.title)
+        };
+        try{
+            await transporter.sendMail(mailOptionsAdmin);
         }
         catch(err){
             console.log(err);
@@ -139,11 +165,24 @@ const updateComplaint = asyncHandler(async(req, res) => {
             const mailOptions = {
                 from: process.env.EMAIL_USER,
                 to: student.email,
-                subject: "Your complaint has been resolved",
+                subject: "Your grievance has been resolved",
                 html: resolvedComplaintMailHTML(student.name, complaint.title)
             };
             try{
                 await transporter.sendMail(mailOptions);
+            }
+            catch(err){
+                console.log(err);
+            }
+
+            const mailOptionsAdmin = {
+                from: process.env.EMAIL_USER,
+                to: process.env.EMAIL_USER,
+                subject: "Grievance resolved",
+                html: resolvedComplaintMailAdminHTML(student.name, student.rollNo, complaint.title)
+            };
+            try{
+                await transporter.sendMail(mailOptionsAdmin);
             }
             catch(err){
                 console.log(err);
@@ -158,6 +197,19 @@ const updateComplaint = asyncHandler(async(req, res) => {
             };
             try{
                 await transporter.sendMail(mailOptions);
+            }
+            catch(err){
+                console.log(err);
+            }
+
+            const mailOptionsAdmin = {
+                from: process.env.EMAIL_USER,
+                to: process.env.EMAIL_USER,
+                subject: "Feedback resolved",
+                html: resolvedFeedbackMailAdminHTML(student.name, student.rollNo, complaint.title)
+            };
+            try{
+                await transporter.sendMail(mailOptionsAdmin);
             }
             catch(err){
                 console.log(err);

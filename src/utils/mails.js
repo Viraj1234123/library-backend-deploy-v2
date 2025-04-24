@@ -1733,7 +1733,7 @@ const complaintMailHTML = (name, title) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Complaint Acknowledgment</title>
+        <title>Grievance Acknowledgment</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -1771,24 +1771,24 @@ const complaintMailHTML = (name, title) => `
     </head>
     <body>
         <div class="header">
-            <h2>Complaint Acknowledgment</h2>
+            <h2>Grievance Acknowledgment</h2>
         </div>
         
         <p>Dear ${name},</p>
         
-        <p>This email confirms that we have received your complaint:</p>
+        <p>This email confirms that we have received your grievance:</p>
         
         <div>
             <p><strong>Title:</strong> ${title}</p>
         </div>
         
-        <p>Your complaint has been registered in our system and forwarded to the appropriate department for review. Our team will investigate the matter thoroughly and provide you with an update as soon as possible.</p>
+        <p>Your grievance has been registered in our system and forwarded to the appropriate department for review. Our team will investigate the matter thoroughly and provide you with an update as soon as possible.</p>
         
         <div class="tracking-info">
-            <p>You can track the status of your complaint by logging into your account on the library website and navigating to the "My Complaints" section.</p>
+            <p>You can track the status of your grievance by logging into your account on the library website and navigating to the "My Grievances" section.</p>
         </div>
         
-        <p>If you need to provide additional information regarding this complaint, please reply to this email or contact the library help desk.</p>
+        <p>If you need to provide additional information regarding this grievance, please reply to this email or contact the library help desk.</p>
         
         <div class="footer">
             <p>Thank You</p>
@@ -1799,6 +1799,71 @@ const complaintMailHTML = (name, title) => `
     </body>
     </html>
 `;
+
+const complaintMailAdminHTML = (name, rollNo, title) => `  
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Grievance Registered</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #b71c1c;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .complaint-info {
+                background-color: #fbe9e7;
+                border-left: 4px solid #e53935;
+                padding: 12px;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>New Grievance Received</h2>
+        </div>
+        
+        <p>Dear Library Administrator,</p>
+        
+        <p>A new grievance has been submitted through the library portal. The details are as follows:</p>
+        
+        <div class="complaint-info">
+            <p><strong>Student's Name:</strong> ${name}</p>
+            <p><strong>Student's Roll Number:</strong> ${rollNo}</p>
+            <p><strong>Title:</strong> ${title}</p>
+        </div>
+        
+        <p>Please review the grievance and take appropriate action as soon as possible. You can access the full grievance details and manage its status via the admin dashboard.</p>
+        
+        <p>If further clarification is needed, feel free to reach out to the complainant or mark the grievance for escalation.</p>
+        
+        <div class="footer">
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
 
 const feedbackMailHTML = (name, title) => `
     <!DOCTYPE html>
@@ -1865,13 +1930,77 @@ const feedbackMailHTML = (name, title) => `
     </html>
 `;
 
+const feedbackMailAdminHTML = (name, rollNo, title) => `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Feedback Received</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #0d47a1;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .feedback-info {
+                background-color: #e3f2fd;
+                border-left: 4px solid #1976d2;
+                padding: 12px;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>New Feedback Submission</h2>
+        </div>
+        
+        <p>Dear Library Administrator,</p>
+        
+        <p>New feedback has been submitted through the library portal. The details are as follows:</p>
+        
+        <div class="feedback-info">
+            <p><strong>Submitted By:</strong> ${name} (${rollNo})</p>
+            <p><strong>Feedback Title:</strong> ${title}</p>
+        </div>
+        
+        <p>Please review the feedback and take necessary action if required. You can access the full feedback and respond via the admin dashboard.</p>
+        
+        <p>Encouraging regular feedback ensures continual improvement in our library services.</p>
+        
+        <div class="footer">
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
+
 const resolvedComplaintMailHTML = (name, title) => `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Complaint Resolution Notification</title>
+        <title>Grievance Resolution Notification</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -1912,16 +2041,16 @@ const resolvedComplaintMailHTML = (name, title) => `
     </head>
     <body>
         <div class="header">
-            <h2>Complaint Resolution Notification</h2>
+            <h2>Grievance Resolution Notification</h2>
         </div>
         
         <p>Dear ${name},</p>
         
         <div class="resolution-notice">
-            <p>We are pleased to inform you that your complaint regarding <strong>${title}</strong> has been resolved.</p>
+            <p>We are pleased to inform you that your grievance regarding <strong>${title}</strong> has been resolved.</p>
         </div>
         
-        <p>Our team has addressed the concerns raised in your complaint and has taken appropriate measures to resolve the issue. A detailed resolution report has been added to your complaint record.</p>
+        <p>Our team has addressed the concerns raised in your grievance and has taken appropriate measures to resolve the issue. A detailed resolution report has been added to your grievance record.</p>
         
         <div class="footer">
             <p>Thank You</p>
@@ -1932,6 +2061,69 @@ const resolvedComplaintMailHTML = (name, title) => `
     </body>
     </html>
 `;
+
+const resolvedComplaintMailAdminHTML = (name, rollNo, title) => `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Grievance Marked as Resolved</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #2e7d32;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .resolution-info {
+                background-color: #f1f8e9;
+                border-left: 4px solid #66bb6a;
+                padding: 12px;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>Grievance Resolved</h2>
+        </div>
+        
+        <p>Dear Library Administrator,</p>
+        
+        <p>The following grievance has been marked as resolved:</p>
+        
+        <div class="resolution-info">
+            <p><strong>Student's Name:</strong> ${name}</p>
+            <p><strong>Student's Roll Number:</strong> ${rollNo}</p>
+            <p><strong>Title:</strong> ${title}</p>
+        </div>
+        
+        <p>The grievance status has been updated in the system. You can review the resolution details in the admin dashboard and close the grievance if no further actions are required.</p>
+        
+        <div class="footer">
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
 
 const resolvedFeedbackMailHTML = (name, title) => `
     <!DOCTYPE html>
@@ -2007,6 +2199,68 @@ const resolvedFeedbackMailHTML = (name, title) => `
     </html>
 `;
 
+const resolvedFeedbackMailAdminHTML = (name, rollNo, title) => `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Feedback Marked as Addressed</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 650px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .header {
+                border-bottom: 2px solid #2e7d32;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+            .resolution-info {
+                background-color: #f1f8e9;
+                border-left: 4px solid #66bb6a;
+                padding: 12px;
+                margin: 20px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 10px;
+                border-top: 1px solid #dddddd;
+                font-size: 0.9em;
+                color: #555555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h2>Feedback Addressed</h2>
+        </div>
+        
+        <p>Dear Library Administrator,</p>
+        
+        <p>The following feedback has been marked as addressed:</p>
+        
+        <div class="resolution-info">
+            <p><strong>Submitted By:</strong> ${name} (${rollNo})</p>
+            <p><strong>Feedback Title:</strong> ${title}</p>
+        </div>
+        
+        <p>The feedback response and any follow-up actions have been documented. You may review the details and archive it from the admin dashboard if no further steps are needed.</p>
+        
+        <div class="footer">
+            <p><strong>Nalanda Library</strong><br>
+            Indian Institute of Technology Ropar<br>
+            Rupnagar, Punjab - 140001</p>
+        </div>
+    </body>
+    </html>
+`;
+
+
 
 
 export {
@@ -2037,5 +2291,9 @@ export {
     complaintMailHTML,
     feedbackMailHTML, 
     resolvedComplaintMailHTML,
-    resolvedFeedbackMailHTML
+    resolvedFeedbackMailHTML,
+    complaintMailAdminHTML,
+    feedbackMailAdminHTML,
+    resolvedComplaintMailAdminHTML,
+    resolvedFeedbackMailAdminHTML,
 }
