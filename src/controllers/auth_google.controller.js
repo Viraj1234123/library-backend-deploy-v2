@@ -141,7 +141,7 @@ export const googleLogin = async (req, res) => {
             }
             
         else{
-            throw new ApiError(401, "Only IIT Ropar students and Admins are allowed to login")  
+            throw new ApiError(401, "Please login with your IIT Ropar email id")  
           }
 
         }
@@ -149,7 +149,7 @@ export const googleLogin = async (req, res) => {
           console.log('Error verifying Google token:', error);
           res.status(401).json({
             success: false,
-            message: 'Invalid Google token'
+            message: error.message || 'Invalid Google token'
           });
 
         };

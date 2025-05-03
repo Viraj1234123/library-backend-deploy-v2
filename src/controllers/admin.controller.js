@@ -462,7 +462,7 @@ const removeStudent = asyncHandler(async(req, res) => {
 
 const getStudentByRollNumber = asyncHandler(async(req, res) => {
 
-    const student = await Student.findOne({rollNo: req.params.rollNo});
+    const student = await Student.findOne({rollNo: req.params.rollNo}).select("-password -refreshToken");
     if(!student){
         throw new ApiError(404, "Student not found");
     }

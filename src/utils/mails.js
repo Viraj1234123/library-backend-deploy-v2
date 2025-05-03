@@ -174,7 +174,7 @@ const resetPasswordMailHTML = (email, name) => `
     </div>
     
     <center>
-        <a href="${process.env.Frontend_URL}/reset-password?token=${jwt.sign({ email }, process.env.JWT_EMAIL_SECRET, { expiresIn: '1h' })}" class="button" target="_blank">Reset Password</a>
+        <a href="${process.env.Frontend_URL}/reset-password?token=${jwt.sign({ email }, process.env.JWT_EMAIL_SECRET, { expiresIn: '1h' })}" class="button" style="color: white;" target="_blank">Reset Password</a>
     </center>
     
     <p>If you did not request a password reset, please ignore this email or contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
@@ -1240,7 +1240,7 @@ const pauseBookingsForRoomMailHTML = (name, room, reason, startTime, endTime) =>
     
     <p>Dear ${name},</p>
 
-    <p>The bookings for the following room in the library have been temporarily paused by the admin:</p>
+    <p>The bookings for the following room in the library have been temporarily paused:</p>
 
     <div class="notification-details">
         <table>
@@ -1263,7 +1263,7 @@ const pauseBookingsForRoomMailHTML = (name, room, reason, startTime, endTime) =>
         </table>
     </div>
 
-    <p>All the existing bookings in this room during this time period have been cancelled</p>
+    <p>All the existing bookings in this room during this time period have been cancelled.</p>
     <p>We apologize for any inconvenience this may cause. If you have any questions or need further assistance, please feel free to reach out.</p>
 
     <div class="footer">
