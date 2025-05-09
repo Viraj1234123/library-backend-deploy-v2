@@ -290,6 +290,14 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
 });
 
 const getCurrentStudent = asyncHandler(async(req, res) => {
+
+    const student = await Student.findById(req.student._id).select(
+        "-password -refreshToken"
+    )
+    if (!student) {
+        throw new ApiError(404, "Student not found")
+    }
+
     return res
     .status(200)
     .json(new ApiResponse(
