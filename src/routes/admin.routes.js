@@ -21,7 +21,7 @@ import { verifyJWTAdmin } from "../middlewares/auth.middleware.js";
 const router = Router()
 
 //router.route("/register").post(registerAdmin)
-router.route("/login").post(loginAdmin)
+//router.route("/login").post(loginAdmin)
 router.route("/logout").post(verifyJWTAdmin,  logoutAdmin)
 router.route("/refresh-token").post(refreshAccessToken)
 router.route("/change-password").post(verifyJWTAdmin, changeCurrentPassword)

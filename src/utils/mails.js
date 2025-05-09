@@ -177,7 +177,7 @@ const resetPasswordMailHTML = (email, name) => `
         <a href="${process.env.Frontend_URL}/reset-password?token=${jwt.sign({ email }, process.env.JWT_EMAIL_SECRET, { expiresIn: '1h' })}" class="button" style="color: white;" target="_blank">Reset Password</a>
     </center>
     
-    <p>If you did not request a password reset, please ignore this email or contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
+    <p>If you did not request a password reset, please ignore this email or contact the library helpdesk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
     
     <div class="footer">
         <p>Thank You</p>
@@ -842,7 +842,7 @@ const cancelSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
         </tr>
     </table>
 
-    <p>If you have any questions regarding your cancellation, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
+    <p>If you have any questions regarding your cancellation, please contact the library helpdesk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
 
     <div class="footer">
         <p>Thank You</p>
@@ -926,7 +926,7 @@ const rejectSeatBookingMailHTML = (name, startTime, endTime, seatNumber, seatTyp
         </tr>
     </table>
 
-    <p>If you have any questions regarding this rejection, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
+    <p>If you have any questions regarding this rejection, please contact the library helpdesk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
 
     <div class="footer">
         <p>Thank You</p>
@@ -1420,7 +1420,7 @@ const articleRequestMailHTML = (name, title, authors, journal, publicationYear, 
         
         <p>Your request has been successfully recorded in our system and is currently being processed. You will receive a notification once the article is available or if additional information is required.</p>
         
-        <p>If you have any questions regarding your request, please contact the library information desk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
+        <p>If you have any questions regarding your request, please contact the library helpdesk at <a href="mailto:libraryhelpdesk@iitrpr.ac.in">libraryhelpdesk@iitrpr.ac.in</a>.</p>
         
         <div class="footer">
             <p>Thank You</p>

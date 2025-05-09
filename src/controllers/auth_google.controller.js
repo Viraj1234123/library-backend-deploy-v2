@@ -61,7 +61,9 @@ export const googleLogin = async (req, res) => {
   
         const googleId = sub;
 
-        if(email === 'library.iitrpr@gmail.com'){
+        const existingAdmin = await Admin.findOne({ email: email });
+
+        if(existingAdmin != null){
 
             role = 'admin';
             const admin = await Admin.findOne({email: email});

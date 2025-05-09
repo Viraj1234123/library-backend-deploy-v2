@@ -50,10 +50,6 @@ const bookSeat = asyncHandler(async (req, res) => {
 
     startTime = new Date(startTime);
 
-    if(new Date().getHours() == 23 && new Date().getMinutes() > 55){
-        throw new ApiError(400, 'Bookings cannot be made between 11:55 PM to 12:00 AM');
-    }
-
     const seat = await Seat.findById(seatId);
     if (!seat) {
         throw new ApiError(404, 'Seat not found');
@@ -195,10 +191,6 @@ const bookSeatByAdmin = asyncHandler(async (req, res) => {
     }
 
     startTime = new Date(startTime);
-
-    if(new Date().getHours() == 23 && new Date().getMinutes() > 55){
-        throw new ApiError(400, 'Bookings cannot be made between 11:55 PM to 12:00 AM');
-    }
 
     if(seat.isAvailable == false){
         throw new ApiError(400, 'Seat is not available');

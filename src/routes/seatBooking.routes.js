@@ -23,6 +23,6 @@ router.route("/get-upcoming-pause-bookings").get(verifyJWT, getUpcomingPauseBook
 router.route("/get-pause-slots-by-room/").get(verifyJWT, getPauseSlotsByRoom);
 router.route("/block-student-from-booking-for-specific-period").patch(verifyJWTAdmin, blockStudentFromBookingForSomeTime);
 router.route("/get-upcoming-bookings").get(verifyJWTAdmin, getUpcomingBookings);
-router.route("/get-bookings-by-parameters").get(verifyJWT, getBookingsByParameters);
+router.route("/get-bookings-by-parameters").get(verifyJWTAdmin, getBookingsByParameters);
 
 export default router;
